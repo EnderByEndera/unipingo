@@ -1,0 +1,2 @@
+from codefridge.container_usage.create_dockerfile import create_dockerfile
+create_dockerfile()

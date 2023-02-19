@@ -1,0 +1,18 @@
+syntax = "proto3";
+option go_package="rpc/protocols";
+import "service.proto";
+
+enum TaskType{
+  IDLE = 0;
+  BUILD_DOCKER = 1;
+}
+// The greeting service definition.
+service Scheduler {
+  // 获取一个任务
+  rpc GetTask (Service) returns (Task) {}
+}
+
+message Task {
+  TaskType taskType = 2;
+  string message = 1;
+}

@@ -1,0 +1,9 @@
+{
+    "remote.SSH.defaultForwardedPorts": [
+        {
+            "localPort": 8787,
+            "remotePort": 8787,
+            "name": "melodie-site"
+        }
+    ]
+}

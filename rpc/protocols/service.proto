@@ -1,0 +1,5 @@
+syntax = "proto3";
+option go_package="rpc/protocols";
+message Service {
+    string message = 1;
+}

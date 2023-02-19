@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  postgresql:
+    image: "postgres:15.2-alpine"
+    container_name: melodie_postgresql
+    restart: always
+    environment:
+      POSTGRES_DB: melodie
+      # POSTGRES_ADMIN_PASSWORD: secret           #cannot use in Produce Env
+      POSTGRES_USER: melodie
+      POSTGRES_PASSWORD: melodie-test
+    ports:
+      - "5432:5432"
+  rabbitmq:
+    image: rabbitmq:3.11
+    container_name: melodie_rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: melodie
+      RABBITMQ_DEFAULT_PASS: melodie-test
+    ports:
+      - "17653:8080"
+      - "5672:5672"
+      - "15672:15672"
