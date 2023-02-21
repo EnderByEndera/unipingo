@@ -1,0 +1,9 @@
+infra_user:
+  name: melodie
+  password: melodie-test
+addresses:
+  oss_addr: "oss.houzhanyi.com"
+  oss_port: 10100
+  pgsql_addr: "localhost"
+  pgsql_port: 5432
+  pgsql_db_name: "postgres"

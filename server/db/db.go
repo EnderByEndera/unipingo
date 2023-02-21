@@ -1,8 +1,10 @@
 package db
 
 import (
+	"fmt"
 	"log"
 	"melodie-site/server/auth"
+	"melodie-site/server/config"
 	"melodie-site/server/models"
 	"time"
 
@@ -36,7 +38,14 @@ func GetDBConn() *gorm.DB {
 }
 
 func InitDB() {
-	dsn := "host=127.0.0.1 port=5432 user=melodie dbname=postgres password=melodie-test sslmode=disable TimeZone=Asia/Shanghai"
+	cfg := config.GetConfig()
+	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable TimeZone=Asia/Shanghai",
+		cfg.ADDRESSES.PGSQL_ADDR,
+		fmt.Sprint(cfg.ADDRESSES.PGSQL_PORT),
+		cfg.INFRASTRUCTURE_USER.NAME,
+		cfg.ADDRESSES.PGSQL_DB_NAME,
+		cfg.INFRASTRUCTURE_USER.PASSWORD,
+	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	database = db
 	if err != nil {

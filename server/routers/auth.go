@@ -8,6 +8,7 @@ import (
 	"melodie-site/server/auth"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
+	"melodie-site/server/utils"
 	"net/http"
 	"net/url"
 
@@ -152,4 +153,60 @@ func LoginWechat(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusAccepted, models.LoginResponse{UserInfo: *user, JWTToken: jwt})
+}
+
+func UploadAvatar(ctx *gin.Context) {
+	//获取普通文本
+	// name := ctx.PostForm("name")
+	// 获取文件(注意这个地方的file要和html模板中的name一致)
+	// file, err := ctx.FormFile("file")
+
+	f, file, err := ctx.Request.FormFile("file")
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    2,
+			"message": "获取数据失败",
+		})
+		return
+	}
+	defer f.Close()
+
+	if err != nil {
+		fmt.Println("获取数据失败")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    1,
+			"message": "获取数据失败",
+		})
+	} else {
+		// fmt.Println("接收的数据", name, file.Filename)
+		// //获取文件名称
+		// fmt.Println(file.Filename)
+		// //文件大小
+		// fmt.Println(file.Size)
+		// //获取文件的后缀名
+		// extstring := path.Ext(file.Filename)
+		// fmt.Println(extstring)
+		// //根据当前时间鹾生成一个新的文件名
+		// fileNameInt := time.Now().Unix()
+		// fileNameStr := strconv.FormatInt(fileNameInt, 10)
+		// //新的文件名
+		//保存上传文件
+		// filePath := filepath.Join(utils.Mkdir("upload"), "/", fileName)
+		contentType := file.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+
+		ossHandler := utils.GetOSSHandler()
+		// utils.PutFile(ossHandler.Buckets.Files, file.Filename, file.Filename, contentType)
+		err := utils.PutObject(ossHandler.Buckets.Files, file.Filename, contentType, f, -1)
+		fmt.Println("err", err)
+		// ctx.SaveUploadedFile(file, fileName)
+		fmt.Println("FileName", file.Filename)
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    0,
+			"message": "success",
+		})
+	}
+
 }

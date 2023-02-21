@@ -88,6 +88,7 @@ func RunServer() {
 		authRouter.POST("/rsa_public_key", routers.CreateRSAPublicKey)
 		authRouter.POST("/login", routers.Login)
 		authRouter.POST("/wechat_login", routers.LoginWechat)
+		authRouter.POST("/upload", routers.UploadAvatar)
 	}
 	articlesRouter := r.Group("/api/articles")
 	{

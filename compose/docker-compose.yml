@@ -22,3 +22,17 @@ services:
       - "17653:8080"
       - "5672:5672"
       - "15672:15672"
+  minio:
+    image: minio/minio
+    container_name: melodie_minio
+    restart: always
+    environment:
+      MINIO_ACCESS_KEY: melodie
+      MINIO_SECRET_KEY: melodie-test
+    volumes:
+      - /home/hzy/data/minio:/data
+    ports:
+      - "10100:9000"
+      - "10101:9090"
+    command: "server /data --console-address \":9090\" -address \":9000\" "
+

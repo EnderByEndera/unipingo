@@ -1,1 +1,0 @@
-python -m pypiserver run ./pypi_server/packages --fallback-url https://pypi.tuna.tsinghua.edu.cn/simple 
