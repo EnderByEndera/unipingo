@@ -6,6 +6,8 @@ import (
 	"log"
 	"melodie-site/server/config"
 	"mime/multipart"
+	"strings"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -85,14 +87,23 @@ func PutFile(bucketName, objectName, filePath, contentType string) error {
 
 func PutObject(bucketName, objectName, contentType string, file multipart.File, size int64) (err error) {
 	client := GetOSSHandler().Client
-
+	t0 := time.Now()
 	uploadInfo, err := client.PutObject(context.Background(),
 		bucketName, objectName, file, size,
 		minio.PutObjectOptions{ContentType: contentType})
+	fmt.Println("since", time.Since(t0))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println("Successfully uploaded bytes: ", uploadInfo)
+	return
+}
+
+func SplitExt(fileName string) (ext string) {
+	splitted := strings.Split(fileName, ".")
+	if len(splitted) > 1 {
+		ext = splitted[len(splitted)-1]
+	}
 	return
 }

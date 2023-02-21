@@ -8,9 +8,9 @@ import (
 	"melodie-site/server/auth"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
-	"melodie-site/server/utils"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -156,11 +156,6 @@ func LoginWechat(c *gin.Context) {
 }
 
 func UploadAvatar(ctx *gin.Context) {
-	//获取普通文本
-	// name := ctx.PostForm("name")
-	// 获取文件(注意这个地方的file要和html模板中的name一致)
-	// file, err := ctx.FormFile("file")
-
 	f, file, err := ctx.Request.FormFile("file")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -178,35 +173,29 @@ func UploadAvatar(ctx *gin.Context) {
 			"message": "获取数据失败",
 		})
 	} else {
-		// fmt.Println("接收的数据", name, file.Filename)
-		// //获取文件名称
-		// fmt.Println(file.Filename)
-		// //文件大小
-		// fmt.Println(file.Size)
-		// //获取文件的后缀名
-		// extstring := path.Ext(file.Filename)
-		// fmt.Println(extstring)
-		// //根据当前时间鹾生成一个新的文件名
-		// fileNameInt := time.Now().Unix()
-		// fileNameStr := strconv.FormatInt(fileNameInt, 10)
-		// //新的文件名
-		//保存上传文件
-		// filePath := filepath.Join(utils.Mkdir("upload"), "/", fileName)
-		contentType := file.Header.Get("Content-Type")
-		if contentType == "" {
-			contentType = "application/octet-stream"
+		// splitted := strings.Split(file.Filename, ".")
+		// ext := ""
+		// if len(splitted) > 1 {
+		// 	ext = splitted[len(splitted)-1]
+		// }
+		t0 := time.Now()
+		// code, err := 200, errors.New(ext)
+		// ctx.SaveUploadedFile(file, "out")
+		// utils.PutFile(utils.GetOSSHandler().Buckets.Files, "tmp", "out", "application/json")
+		// code, err := services.UploadMultipartFileToOSS(ext, f)
+		code, err := services.UploadFileByHeaderToOSS(ctx, file)
+		fmt.Println(time.Since(t0))
+		if err != nil {
+			ctx.JSON(code, gin.H{
+				"code":    1,
+				"message": err.Error(),
+			})
+		} else {
+			ctx.JSON(code, gin.H{
+				"code":    0,
+				"message": "uploaded file ok!",
+			})
 		}
-
-		ossHandler := utils.GetOSSHandler()
-		// utils.PutFile(ossHandler.Buckets.Files, file.Filename, file.Filename, contentType)
-		err := utils.PutObject(ossHandler.Buckets.Files, file.Filename, contentType, f, -1)
-		fmt.Println("err", err)
-		// ctx.SaveUploadedFile(file, fileName)
-		fmt.Println("FileName", file.Filename)
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    0,
-			"message": "success",
-		})
 	}
 
 }
