@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"melodie-site/server/auth"
+	"melodie-site/server/models"
 	"melodie-site/server/services"
 	"net/http"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -20,12 +23,18 @@ type LoginInfoRequest struct {
 	EncryptedPassword string `json:"encryptedPassword"`
 }
 
-type LoginResponse struct {
-	JWTToken string `json:"jwtToken"`
-}
-
 type WechatLoginRequest struct {
 	Code string `json:"code"`
+}
+
+// 相关文档见：
+// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html
+type WechatLoginResponse struct {
+	OpenID     string `json:"openid"`
+	SessionKey string `json:"session_key"`
+	UnionID    string `json:"unionid"`
+	ErrCode    int    `json:"errcode"`
+	ErrMsg     string `json:"errmsg"`
 }
 
 func CreateRSAPublicKey(c *gin.Context) {
@@ -66,7 +75,7 @@ func Login(c *gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		} else {
-			c.JSON(status, LoginResponse{JWTToken: jwt})
+			c.JSON(status, models.LoginResponse{JWTToken: jwt})
 		}
 	}
 }
@@ -85,27 +94,62 @@ func LoginWechat(c *gin.Context) {
 		c.String(http.StatusBadRequest, "no param 'code' input!")
 		return
 	}
-	req, err := http.NewRequest("GET", "https://api.weixin.qq.com/sns/jscode2session", nil)
+	params := url.Values{}
+	Url, err := url.Parse("https://api.weixin.qq.com/sns/jscode2session")
 	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	// appid=APPID&secret=SECRET&js_code=JSCODE&grant_type=authorization_code
-
-	// 返回数据示例
-
-	q := req.URL.Query()
-	q.Add("appid", "wxf7dc6cdd6711feea")
-	q.Add("secret", "b4b5f723d87de6782307dda413abe99d")
-	q.Add("js_code", reqStruct.Code)
-	q.Add("grant_type", "authorization_code")
-	response, err := http.DefaultClient.Do(req)
+	params.Set("appid", "wxf7dc6cdd6711feea")
+	params.Set("secret", "b4b5f723d87de6782307dda413abe99d")
+	params.Set("js_code", reqStruct.Code)
+	params.Set("grant_type", "authorization_code")
+	// params.Set("name","zhaofan")
+	// params.Set("age","23")
+	//如果参数中有中文参数,这个方法会进行URLEncode
+	Url.RawQuery = params.Encode()
+	urlPath := Url.String()
+	fmt.Println(urlPath) // https://httpbin.org/get?age=23&name=zhaofan
+	resp, err := http.Get(urlPath)
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		c.String(http.StatusFailedDependency, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	body, err := ioutil.ReadAll(req.Response.Body)
-	defer response.Body.Close()
-	fmt.Println(string(body))
+	wechatLoginResponse := WechatLoginResponse{}
+	err = json.Unmarshal(body, &wechatLoginResponse)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	user, err := services.GetAuthService().GetUserByWechatOpenID(wechatLoginResponse.OpenID)
+	if err != nil {
 
+		err := services.GetAuthService().CreateWechatUser(&models.User{
+			WechatOpenID:  wechatLoginResponse.OpenID,
+			WechatUnionID: wechatLoginResponse.UnionID},
+		)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		user, err = services.GetAuthService().GetUserByWechatOpenID(wechatLoginResponse.OpenID)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	authUUID, err := uuid.NewUUID()
+	services.GetAuthService().StoreWechatSessionKey(authUUID, wechatLoginResponse.SessionKey)
+	if err != nil {
+		log.Println(err)
+	}
+	jwt, err := auth.CreateJWTString(user.ID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusAccepted, models.LoginResponse{UserInfo: *user, JWTToken: jwt})
 }

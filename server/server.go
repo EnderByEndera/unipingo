@@ -22,6 +22,10 @@ func authMiddleware() gin.HandlerFunc {
 
 		// err := auth.VerifyJWTString(accessToken)
 		claims, valid, err := auth.ParseJWTString(accessToken)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			c.Abort()
+		}
 		utils.SetClaims(c, *claims)
 		if err != nil || !valid {
 			c.String(http.StatusUnauthorized, err.Error())
@@ -87,7 +91,7 @@ func RunServer() {
 	}
 	articlesRouter := r.Group("/api/articles")
 	{
-		articlesRouter.GET("/all", routers.GetAllArticles)
+		articlesRouter.GET("/all", authMiddleware(), routers.GetAllArticles)
 		articlesRouter.GET("/article", routers.GetArticle)
 		articlesRouter.POST("/create", authMiddleware(), routers.CreateArticle)
 		articlesRouter.POST("/update", authMiddleware(), routers.UpdateArticle)

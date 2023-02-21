@@ -14,14 +14,15 @@ import (
 )
 
 type AuthService struct {
-	PrivateKeys map[uuid.UUID][]byte
+	PrivateKeys       map[uuid.UUID][]byte
+	WechatSessionKeys map[uuid.UUID]string
 }
 
 func (service *AuthService) GetAuthKey() (string, uuid.UUID) {
 	prvKey, pubKey := auth.GenRsaKey()
 	authUUID, err := uuid.NewUUID()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	service.PrivateKeys[authUUID] = prvKey
 
@@ -61,12 +62,38 @@ func (service *AuthService) Login(userName, password string) (user models.User, 
 	return
 }
 
+func (service *AuthService) GetUserByWechatOpenID(openid string) (user *models.User, err error) {
+	user = &models.User{}
+	err = db.GetDBConn().Where("wechat_openid = ?", openid).First(user).Error
+	return user, err
+}
+
+func (service *AuthService) CreateWechatUser(user *models.User) (err error) {
+	err = db.GetDBConn().Create(user).Error
+	return err
+}
+
+func (service *AuthService) StoreWechatSessionKey(authID uuid.UUID, sessionKey string) {
+	authService.WechatSessionKeys[authID] = sessionKey
+}
+
+func (service *AuthService) GetWechatSessionKey(authID uuid.UUID) (key string, ok bool) {
+	key = authService.WechatSessionKeys[authID]
+	if key == "" {
+		ok = false
+	} else {
+		ok = true
+	}
+	return
+}
+
 var authService *AuthService
 
 func GetAuthService() *AuthService {
 	if authService == nil {
 		authService = &AuthService{}
 		authService.PrivateKeys = map[uuid.UUID][]byte{}
+		authService.WechatSessionKeys = map[uuid.UUID]string{}
 	}
 	return authService
 }
