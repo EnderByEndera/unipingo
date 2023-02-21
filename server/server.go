@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/unrolled/secure"
 )
 
 func authMiddleware() gin.HandlerFunc {
@@ -58,16 +59,35 @@ func InitServer() {
 	fmt.Println(article)
 }
 
+func TlsHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		secureMiddleware := secure.New(secure.Options{
+			SSLRedirect: true,
+			SSLHost:     ":8787",
+		})
+		err := secureMiddleware.Process(c.Writer, c.Request)
+
+		// If there was an error, do not continue.
+		if err != nil {
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func RunServer() {
 	r := gin.Default()
+	r.Use(TlsHandler())
 	authRouter := r.Group("/api/auth")
 	{
 		authRouter.POST("/rsa_public_key", routers.CreateRSAPublicKey)
 		authRouter.POST("/login", routers.Login)
+		authRouter.POST("/wechat_login", routers.LoginWechat)
 	}
 	articlesRouter := r.Group("/api/articles")
 	{
-		articlesRouter.GET("/all", authMiddleware(), routers.GetAllArticles)
+		articlesRouter.GET("/all", routers.GetAllArticles)
 		articlesRouter.GET("/article", routers.GetArticle)
 		articlesRouter.POST("/create", authMiddleware(), routers.CreateArticle)
 		articlesRouter.POST("/update", authMiddleware(), routers.UpdateArticle)
@@ -79,5 +99,21 @@ func RunServer() {
 		tagsRouter.POST("/create", authMiddleware(), routers.CreateTag)
 		tagsRouter.POST("/update", authMiddleware(), routers.UpdateTag)
 	}
-	r.Run("0.0.0.0:8787") // listen and serve on 0.0.0.0:8080
+	// r.Run("0.0.0.0:8787")
+	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
+	// handler := r.Handler()
+
+	// http.ListenAndServeTLS("0.0.0.0:8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key",
+	// 	handler)
+	// server := http.Server{
+	// 	Addr:      "0.0.0.0:8787",
+	// 	Handler:   r,
+	// 	TLSConfig: &tls.Config{},
+	// }
+	// fmt.Println(server.TLSConfig.MinVersion, server.TLSConfig.MaxVersion)
+	// err := server.ListenAndServeTLS("cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
+
 }

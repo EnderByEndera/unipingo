@@ -3,6 +3,7 @@ package routers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"melodie-site/server/auth"
 	"melodie-site/server/services"
 	"net/http"
@@ -21,6 +22,10 @@ type LoginInfoRequest struct {
 
 type LoginResponse struct {
 	JWTToken string `json:"jwtToken"`
+}
+
+type WechatLoginRequest struct {
+	Code string `json:"code"`
 }
 
 func CreateRSAPublicKey(c *gin.Context) {
@@ -64,4 +69,43 @@ func Login(c *gin.Context) {
 			c.JSON(status, LoginResponse{JWTToken: jwt})
 		}
 	}
+}
+
+func LoginWechat(c *gin.Context) {
+	dataBytes, err := c.GetRawData()
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	reqStruct := &WechatLoginRequest{}
+	err = json.Unmarshal(dataBytes, reqStruct)
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	if reqStruct.Code == "" {
+		c.String(http.StatusBadRequest, "no param 'code' input!")
+		return
+	}
+	req, err := http.NewRequest("GET", "https://api.weixin.qq.com/sns/jscode2session", nil)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	// appid=APPID&secret=SECRET&js_code=JSCODE&grant_type=authorization_code
+
+	// 返回数据示例
+
+	q := req.URL.Query()
+	q.Add("appid", "wxf7dc6cdd6711feea")
+	q.Add("secret", "b4b5f723d87de6782307dda413abe99d")
+	q.Add("js_code", reqStruct.Code)
+	q.Add("grant_type", "authorization_code")
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.String(http.StatusFailedDependency, err.Error())
+		return
+	}
+	body, err := ioutil.ReadAll(req.Response.Body)
+	defer response.Body.Close()
+	fmt.Println(string(body))
+
 }
