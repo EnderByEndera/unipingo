@@ -83,6 +83,10 @@ func TlsHandler() gin.HandlerFunc {
 func RunServer() {
 	r := gin.Default()
 	r.Use(TlsHandler())
+	fileRouter := r.Group("/api/file")
+	{
+		fileRouter.GET("/getfile/:file", routers.SendFile)
+	}
 	authRouter := r.Group("/api/auth")
 	{
 		authRouter.POST("/rsa_public_key", routers.CreateRSAPublicKey)
@@ -106,19 +110,5 @@ func RunServer() {
 	}
 	// r.Run("0.0.0.0:8787")
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
-	// handler := r.Handler()
-
-	// http.ListenAndServeTLS("0.0.0.0:8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key",
-	// 	handler)
-	// server := http.Server{
-	// 	Addr:      "0.0.0.0:8787",
-	// 	Handler:   r,
-	// 	TLSConfig: &tls.Config{},
-	// }
-	// fmt.Println(server.TLSConfig.MinVersion, server.TLSConfig.MaxVersion)
-	// err := server.ListenAndServeTLS("cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
 
 }

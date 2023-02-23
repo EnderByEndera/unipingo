@@ -14,14 +14,30 @@ import (
 	"github.com/google/uuid"
 )
 
+func GetFileFromOSS(objectName string) (saveAsFile string, err error) {
+	f, err := ioutil.TempFile(os.TempDir(), uuid.NewString())
+	saveAsFile = f.Name()
+	defer func() {
+		f.Close()
+	}()
+	err = utils.GetOSSHandler().GetFileAndSave(objectName, saveAsFile)
+	return
+}
+
 func UploadFileByHeaderToOSS(ctx *gin.Context, fileHeader *multipart.FileHeader) (code int, err error) {
 	ext := utils.SplitExt(fileHeader.Filename)
 	f, err := ioutil.TempFile(os.TempDir(), uuid.NewString())
+	defer func() {
+		f.Close()
+		os.Remove(f.Name())
+	}()
+
 	if err != nil {
 		code = http.StatusInternalServerError
 		return
 	}
 	err = ctx.SaveUploadedFile(fileHeader, f.Name())
+
 	if err != nil {
 		code = http.StatusInternalServerError
 		return

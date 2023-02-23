@@ -173,16 +173,7 @@ func UploadAvatar(ctx *gin.Context) {
 			"message": "获取数据失败",
 		})
 	} else {
-		// splitted := strings.Split(file.Filename, ".")
-		// ext := ""
-		// if len(splitted) > 1 {
-		// 	ext = splitted[len(splitted)-1]
-		// }
 		t0 := time.Now()
-		// code, err := 200, errors.New(ext)
-		// ctx.SaveUploadedFile(file, "out")
-		// utils.PutFile(utils.GetOSSHandler().Buckets.Files, "tmp", "out", "application/json")
-		// code, err := services.UploadMultipartFileToOSS(ext, f)
 		code, err := services.UploadFileByHeaderToOSS(ctx, file)
 		fmt.Println(time.Since(t0))
 		if err != nil {

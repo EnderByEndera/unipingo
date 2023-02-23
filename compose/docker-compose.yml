@@ -1,5 +1,15 @@
 version: "3.9"
 services:
+  mongo:
+    image: mongo:6.0
+    container_name: melodie_mongo
+    restart: always
+    ports:
+      - "10200:27017"
+    environment:
+      - name=value
+    volumes:
+      - /home/hzy/data/mongo:/data
   postgresql:
     image: "postgres:15.2-alpine"
     container_name: melodie_postgresql

@@ -100,6 +100,15 @@ func PutObject(bucketName, objectName, contentType string, file multipart.File, 
 	return
 }
 
+func (handler *OSSHandler) GetFileAndSave(objectName, saveAsFile string) (err error) {
+	err = handler.Client.FGetObject(context.Background(), handler.Buckets.Files, objectName,
+		saveAsFile, minio.GetObjectOptions{})
+	if err != nil {
+		return
+	}
+	return
+}
+
 func SplitExt(fileName string) (ext string) {
 	splitted := strings.Split(fileName, ".")
 	if len(splitted) > 1 {
