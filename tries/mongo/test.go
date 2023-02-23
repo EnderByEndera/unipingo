@@ -19,6 +19,7 @@ func save(ctx context.Context, client *mongo.Client) (err error) {
 
 	type AAA struct {
 		AAA   string `bson:"aaa,omitempty"`
+		AAA1  string `bson:"aaa1"`
 		Posts []Post `bson:"post,omitempty"`
 	}
 
@@ -37,7 +38,7 @@ func save(ctx context.Context, client *mongo.Client) (err error) {
 		bson.D{{"title", "Pluto"}, {"body", "Hello Pluto"}},
 	}
 
-	byts, err := bson.Marshal(AAA{"xx", []Post{{"aaa", "aaaa"}}})
+	byts, err := bson.Marshal(AAA{"xx", "", []Post{{"aaa", "aaaa"}}})
 	fmt.Println(byts)
 	if err != nil {
 		log.Fatal(err)
