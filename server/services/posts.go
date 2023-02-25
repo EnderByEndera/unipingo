@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
 
@@ -71,20 +70,28 @@ func (service *PostService) NewReply(req *models.NewReplyRequest) (newReplyUUID 
 	return
 }
 
-func (service *PostService) CheckIfAlreadyLiked(req *models.LikePostRequest) (alreadyLiked bool, alreadyDisLiked bool) {
-	filter := bson.D{{"_id", req.PostOID}, {"likes", bson.M{"$elemMatch": bson.M{"userID": bson.M{"$eq": req.UserID}, "position": bson.M{"$eq": true}}}}}
+func exists(filter bson.M) bool {
 	result := getCollection("posts").FindOne(context.TODO(), filter)
-	if result.Err() == nil {
-		alreadyLiked = true
-	}
+	return result.Err() == nil
+}
 
-	filter = bson.D{{"_id", req.PostOID}, {"likes", bson.M{"$elemMatch": bson.M{"userID": bson.M{"$eq": req.UserID}, "position": bson.M{"$eq": false}}}}}
-	result = getCollection("posts").FindOne(context.TODO(), filter)
-
-	if result.Err() == nil {
-		alreadyDisLiked = true
+func (service *PostService) CheckIfAlreadyLiked(req *models.LikePostRequest) (alreadyLiked bool, alreadyDisLiked bool) {
+	filterCreator := func(position bool) bson.M {
+		return bson.M{
+			"_id": req.PostOID,
+			"likes": bson.M{
+				"$elemMatch": bson.M{
+					"userID": bson.M{
+						"$eq": req.UserID,
+					},
+					"position": bson.M{
+						"$eq": position,
+					},
+				},
+			},
+		}
 	}
-	return
+	return exists(filterCreator(true)), exists(filterCreator(false))
 }
 
 // 如果赞过了，就返回
@@ -93,28 +100,37 @@ func (service *PostService) GiveLikeToPost(req *models.LikePostRequest) (err err
 	alreadyLiked, alreadyDisliked := service.CheckIfAlreadyLiked(req)
 	var statement bson.M
 	identifier := []interface{}{}
+	incFactory := func(likeInc, dislikeInc int) bson.M {
+		return bson.M{"statistics.likes": likeInc, "statistics.dislikes": dislikeInc}
+	}
+	modificationFactory := func(position bool, likeInc, dislikeInc int) ([]interface{}, bson.M) {
+		return []interface{}{bson.M{
+				"likeItem.userID": bson.M{
+					"$eq": req.UserID,
+				},
+			}}, bson.M{
+				"$set": bson.M{
+					"likes.$[likeItem].position": position,
+				},
+				"$inc": incFactory(likeInc, dislikeInc)}
+	}
 	if !(alreadyLiked || alreadyDisliked) {
 		if req.Position {
-			statement = bson.M{"$push": bson.M{"likes": like}, "$inc": bson.M{"statistics.likes": 1}}
+			statement = bson.M{"$push": bson.M{"likes": like}, "$inc": incFactory(1, 0)}
 		} else {
-			statement = bson.M{"$push": bson.M{"likes": like}, "$inc": bson.M{"statistics.dislikes": 1}}
+			statement = bson.M{"$push": bson.M{"likes": like}, "$inc": incFactory(0, 1)}
 		}
 	} else if alreadyLiked {
 		if req.Position {
 			return errors.New("already liked this post")
 		} else {
-			// bson.M{"likeItem.userID": req.UserID},
-			identifier = []interface{}{bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}}}
-			statement = bson.M{"$set": bson.M{"likes.$[likeItem].position": false},
-				"$inc": bson.M{"statistics.likes": -1, "statistics.dislikes": 1}}
+			identifier, statement = modificationFactory(false, -1, 1)
 		}
 	} else if alreadyDisliked {
 		if !req.Position {
 			return errors.New("already unliked this post")
 		} else {
-			identifier = []interface{}{bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}}}
-			statement = bson.M{"$set": bson.M{"likes.$[likeItem].position": true},
-				"$inc": bson.M{"statistics.likes": 1, "statistics.dislikes": -1}}
+			identifier, statement = modificationFactory(true, 1, -1)
 		}
 	} else {
 		panic("error occurred. is liked and unliked exist at the same time?")
@@ -129,62 +145,207 @@ func (service *PostService) GiveLikeToPost(req *models.LikePostRequest) (err err
 }
 
 func (service *PostService) CheckIfCommentAlreadyLiked(req *models.LikeCommentRequest) (alreadyLiked bool, alreadyDisLiked bool) {
-	filter := bson.D{{"_id", req.PostOID}, {"comments",
-		bson.M{"$elemMatch": bson.M{"uuid": bson.M{"$eq": req.CommentUUID},
-			"likes": bson.M{"$elemMatch": bson.M{"userID": bson.M{"$eq": req.UserID}, "position": bson.M{"$eq": true}}}}}}}
-	result := getCollection("posts").FindOne(context.TODO(), filter)
-	if result.Err() == nil {
-		alreadyLiked = true
+	filterCreator := func(pos bool) bson.M {
+		return bson.M{
+			"_id": req.PostOID,
+			"comments": bson.M{
+				"$elemMatch": bson.M{
+					"uuid": bson.M{
+						"$eq": req.CommentUUID,
+					},
+					"likes": bson.M{
+						"$elemMatch": bson.M{
+							"userID": bson.M{
+								"$eq": req.UserID,
+							},
+							"position": bson.M{"$eq": pos},
+						},
+					},
+				},
+			},
+		}
 	}
 
-	filter = bson.D{{"_id", req.PostOID}, {"comments",
-		bson.M{"$elemMatch": bson.M{"uuid": bson.M{"$eq": req.CommentUUID},
-			"likes": bson.M{"$elemMatch": bson.M{"userID": bson.M{"$eq": req.UserID}, "position": bson.M{"$eq": false}}}}}}}
-	result = getCollection("posts").FindOne(context.TODO(), filter)
-
-	if result.Err() == nil {
-		alreadyDisLiked = true
-	}
-	return
+	return exists(filterCreator(true)), exists(filterCreator(false))
 }
 
 func (service *PostService) GiveLikeToComment(req *models.LikeCommentRequest) (err error) {
 	like := models.Like{UserID: req.UserID, TimeStamp: 0, Position: req.Position}
 	alreadyLiked, alreadyDisliked := service.CheckIfCommentAlreadyLiked(req)
-	fmt.Println(alreadyLiked, alreadyDisliked)
+
 	var statement bson.M
 	identifier := []interface{}{}
+	pushFactory := func(likeInc, dislikeInc int) ([]interface{}, bson.M) {
+		identifier_ := []interface{}{
+			bson.M{
+				"commentItem.uuid": bson.M{
+					"$eq": req.CommentUUID,
+				},
+			},
+		}
+		statement_ := bson.M{
+			"$push": bson.M{"comments.$[commentItem].likes": like},
+			"$inc": bson.M{
+				"comments.$[commentItem].statistics.likes":    likeInc,
+				"comments.$[commentItem].statistics.dislikes": dislikeInc,
+			},
+		}
+		return identifier_, statement_
+	}
+
+	modificationFactory := func(position bool, likeInc, dislikeInc int) ([]interface{}, bson.M) {
+		identifier_ := []interface{}{
+			bson.M{"commentItem.uuid": bson.M{
+				"$eq": req.CommentUUID,
+			}},
+			bson.M{"likeItem.userID": bson.M{
+				"$eq": req.UserID,
+			}},
+		}
+		statement_ := bson.M{
+			"$set": bson.M{
+				"comments.$[commentItem].likes.$[likeItem].position": position,
+			},
+			"$inc": bson.M{
+				"comments.$[commentItem].statistics.dislikes": likeInc,
+				"comments.$[commentItem].statistics.likes":    dislikeInc,
+			},
+		}
+		return identifier_, statement_
+	}
 	if !(alreadyLiked || alreadyDisliked) {
 		if req.Position {
-			identifier = []interface{}{bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}}}
-			statement = bson.M{"$push": bson.M{"comments.$[commentItem].likes": like}, "$inc": bson.M{"comments.$[commentItem].statistics.likes": 1}}
+			identifier, statement = pushFactory(1, 0)
 		} else {
-			identifier = []interface{}{bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}}}
-			statement = bson.M{"$push": bson.M{"comments.$[commentItem].likes": like}, "$inc": bson.M{"comments.$[commentItem].statistics.dislikes": 1}}
+			identifier, statement = pushFactory(0, 1)
 		}
 	} else if alreadyLiked {
 		if req.Position {
 			return errors.New("already liked this post")
 		} else {
-			identifier = []interface{}{
-				bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}},
-				bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}},
-			}
-			statement = bson.M{"$set": bson.M{"comments.$[commentItem].likes.$[likeItem].position": false},
-				"$inc": bson.M{"comments.$[commentItem].statistics.dislikes": 1,
-					"comments.$[commentItem].statistics.likes": -1}}
+			identifier, statement = modificationFactory(false, -1, 1)
 		}
 	} else if alreadyDisliked {
 		if !req.Position {
 			return errors.New("already disliked this post")
 		} else {
-			identifier = []interface{}{
-				bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}},
-				bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}},
-			}
-			statement = bson.M{"$set": bson.M{"comments.$[commentItem].likes.$[likeItem].position": true},
-				"$inc": bson.M{"comments.$[commentItem].statistics.dislikes": -1,
-					"comments.$[commentItem].statistics.likes": 1}}
+			identifier, statement = modificationFactory(true, 1, -1)
+		}
+	} else {
+		panic("error occurred. is liked and unliked exist at the same time?")
+	}
+	opts := options.FindOneAndUpdate().
+		SetArrayFilters(options.ArrayFilters{Filters: identifier}).
+		SetReturnDocument(options.After)
+
+	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", req.PostOID}}, statement, opts)
+	err = res.Err()
+	return
+}
+
+func (service *PostService) CheckIfReplyAlreadyLiked(req *models.LikeReplyRequest) (alreadyLiked bool, alreadyDisLiked bool) {
+
+	createFilter := func(position bool) bson.M {
+		v := bson.M{
+			"_id": req.PostOID,
+			"comments": bson.M{
+				"$elemMatch": bson.M{
+					"uuid": bson.M{"$eq": req.CommentUUID},
+					"replies": bson.M{
+						"$elemMatch": bson.M{
+							"uuid": bson.M{"$eq": req.ReplyUUID},
+							"likes": bson.M{
+								"$elemMatch": bson.M{
+									"userID":   bson.M{"$eq": req.UserID},
+									"position": bson.M{"$eq": position},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		return v
+	}
+	return exists(createFilter(true)), exists(createFilter(false))
+}
+
+func (service *PostService) GiveLikeToReply(req *models.LikeReplyRequest) (err error) {
+	like := models.Like{UserID: req.UserID, TimeStamp: 0, Position: req.Position}
+	alreadyLiked, alreadyDisliked := service.CheckIfReplyAlreadyLiked(req)
+	var statement bson.M
+	identifier := []interface{}{}
+	pushFactory := func(likeInc, dislikeInc int) ([]interface{}, bson.M) {
+		identifier_ := []interface{}{
+			bson.M{
+				"commentItem.uuid": bson.M{
+					"$eq": req.CommentUUID,
+				},
+			},
+			bson.M{
+				"replyItem.uuid": bson.M{
+					"$eq": req.ReplyUUID,
+				},
+			},
+		}
+		statement_ := bson.M{
+			"$push": bson.M{
+				"comments.$[commentItem].replies.$[replyItem].likes": like,
+			},
+			"$inc": bson.M{
+				"comments.$[commentItem].replies.$[replyItem].statistics.likes":    likeInc,
+				"comments.$[commentItem].replies.$[replyItem].statistics.dislikes": dislikeInc,
+			},
+		}
+		return identifier_, statement_
+	}
+
+	modificationFactory := func(position bool, likeInc, dislikeInc int) ([]interface{}, bson.M) {
+		identifier_ := []interface{}{
+			bson.M{
+				"commentItem.uuid": bson.M{
+					"$eq": req.CommentUUID,
+				},
+			},
+			bson.M{
+				"replyItem.uuid": bson.M{
+					"$eq": req.ReplyUUID,
+				},
+			},
+			bson.M{
+				"likeItem.userID": bson.M{
+					"$eq": req.UserID,
+				},
+			},
+		}
+		statement_ := bson.M{
+			"$set": bson.M{
+				"comments.$[commentItem].replies.$[replyItem].likes.$[likeItem].position": false,
+			},
+			"$inc": bson.M{
+				"comments.$[commentItem].replies.$[replyItem].statistics.dislikes": 1,
+				"comments.$[commentItem].replies.$[replyItem].statistics.likes":    -1,
+			},
+		}
+		return identifier_, statement_
+	}
+	if !(alreadyLiked || alreadyDisliked) {
+		if req.Position {
+			identifier, statement = pushFactory(1, 0)
+		} else {
+			identifier, statement = pushFactory(0, 1)
+		}
+	} else if alreadyLiked {
+		if req.Position {
+			return errors.New("already liked this post")
+		} else {
+			identifier, statement = modificationFactory(false, -1, 1)
+		}
+	} else if alreadyDisliked {
+		if !req.Position {
+			return errors.New("already disliked this post")
+		} else {
+			identifier, statement = modificationFactory(true, 1, -1)
 		}
 	} else {
 		panic("error occurred. is liked and unliked exist at the same time?")
