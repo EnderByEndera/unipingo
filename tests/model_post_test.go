@@ -133,12 +133,18 @@ func TestModelPosts(t *testing.T) {
 	postGot, err = services.GetPostsService().GetPostByID(insertedDocID)
 	assert.Equal(t, postGot.Comments[0].Likes[0].UserID, 88)
 	assert.Equal(t, postGot.Comments[0].Likes[0].Position, true)
+	err = services.GetPostsService().GiveLikeToComment(&models.LikeCommentRequest{
+		PostOID: insertedDocID, UserID: 88, Position: false, CommentUUID: "de867ca7-270e-4b00-a7d6-37bd8f073058",
+	})
+	fmt.Println(err)
 
 	postGot, err = services.GetPostsService().GetPostByID(insertedDocID)
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
+	assert.Equal(t, postGot.Comments[0].Likes[0].UserID, 88)
+	assert.Equal(t, postGot.Comments[0].Likes[0].Position, false)
 	fmt.Println(postGot.ToIndentedJSON())
 	res11, err := collection.DeleteOne(context.TODO(), bson.D{{"_id", insertedDocID}})
 	if err != nil {

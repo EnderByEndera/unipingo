@@ -159,24 +159,32 @@ func (service *PostService) GiveLikeToComment(req *models.LikeCommentRequest) (e
 			identifier = []interface{}{bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}}}
 			statement = bson.M{"$push": bson.M{"comments.$[commentItem].likes": like}, "$inc": bson.M{"comments.$[commentItem].statistics.likes": 1}}
 		} else {
-			statement = bson.M{"$push": bson.M{"likes": like}, "$inc": bson.M{"statistics.dislikes": 1}}
+			identifier = []interface{}{bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}}}
+			statement = bson.M{"$push": bson.M{"comments.$[commentItem].likes": like}, "$inc": bson.M{"comments.$[commentItem].statistics.dislikes": 1}}
 		}
 	} else if alreadyLiked {
 		if req.Position {
 			return errors.New("already liked this post")
 		} else {
-			// bson.M{"likeItem.userID": req.UserID},
-			identifier = []interface{}{bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}}}
-			statement = bson.M{"$set": bson.M{"likes.$[likeItem].position": false},
-				"$inc": bson.M{"statistics.likes": -1, "statistics.dislikes": 1}}
+			identifier = []interface{}{
+				bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}},
+				bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}},
+			}
+			statement = bson.M{"$set": bson.M{"comments.$[commentItem].likes.$[likeItem].position": false},
+				"$inc": bson.M{"comments.$[commentItem].statistics.dislikes": 1,
+					"comments.$[commentItem].statistics.likes": -1}}
 		}
 	} else if alreadyDisliked {
 		if !req.Position {
-			return errors.New("already unliked this post")
+			return errors.New("already disliked this post")
 		} else {
-			identifier = []interface{}{bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}}}
-			statement = bson.M{"$set": bson.M{"likes.$[likeItem].position": true},
-				"$inc": bson.M{"statistics.likes": 1, "statistics.dislikes": -1}}
+			identifier = []interface{}{
+				bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}},
+				bson.D{{"likeItem.userID", bson.D{{"$eq", req.UserID}}}},
+			}
+			statement = bson.M{"$set": bson.M{"comments.$[commentItem].likes.$[likeItem].position": true},
+				"$inc": bson.M{"comments.$[commentItem].statistics.dislikes": -1,
+					"comments.$[commentItem].statistics.likes": 1}}
 		}
 	} else {
 		panic("error occurred. is liked and unliked exist at the same time?")
