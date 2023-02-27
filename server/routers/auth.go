@@ -71,7 +71,7 @@ func Login(c *gin.Context) {
 		c.String(status, err.Error())
 		return
 	} else {
-		jwt, err := auth.CreateJWTString(user.ID)
+		jwt, err := auth.CreateJWTString(user.OID)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
@@ -127,8 +127,11 @@ func LoginWechat(c *gin.Context) {
 	if err != nil {
 
 		err := services.GetAuthService().CreateWechatUser(&models.User{
-			WechatOpenID:  wechatLoginResponse.OpenID,
-			WechatUnionID: wechatLoginResponse.UnionID},
+			WechatInfo: models.WechatInfo{
+				OpenID:  wechatLoginResponse.OpenID,
+				UnionID: wechatLoginResponse.UnionID,
+			},
+		},
 		)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
@@ -147,12 +150,14 @@ func LoginWechat(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 	}
-	jwt, err := auth.CreateJWTString(user.ID)
+	jwt, err := auth.CreateJWTString(user.OID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusAccepted, models.LoginResponse{UserInfo: *user, JWTToken: jwt})
+	userResp := models.UserResponse{}
+	userResp.LoadFromStructUser(user)
+	c.JSON(http.StatusAccepted, models.LoginResponse{UserInfo: userResp, JWTToken: jwt})
 }
 
 func UploadAvatar(ctx *gin.Context) {

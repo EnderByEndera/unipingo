@@ -6,19 +6,20 @@ import (
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v4"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var mySigningKey = []byte("AllYourBase")
 
 type MelodieSiteClaims struct {
-	UserID int
+	UserID string
 	jwt.RegisteredClaims
 }
 
-func CreateJWTString(userID int) (string, error) {
+func CreateJWTString(userID primitive.ObjectID) (string, error) {
 	mm, _ := time.ParseDuration("48h")
 	claims := MelodieSiteClaims{
-		userID,
+		userID.Hex(),
 		jwt.RegisteredClaims{
 			// Also fixed dates can be used for the NumericDate
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(mm)),
