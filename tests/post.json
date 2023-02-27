@@ -1,6 +1,8 @@
 {
   "uuid": "1a386186-8e50-4d75-ae89-903306989890",
-  "userID": 1,
+  "userID": {
+    "$oid": "834738aa3158c7b7ac928e18"
+  },
   "content": "大学生活很快乐",
   "statistics": {
     "likes": 0,
@@ -13,7 +15,9 @@
   "comments": [
     {
       "uuid": "de867ca7-270e-4b00-a7d6-37bd8f073058",
-      "userID": 7,
+      "userID": {
+        "$oid": "834738aa8158c7b7ac928e18"
+      },
       "content": "我同意",
       "userActions": [],
       "likes": [],
@@ -24,7 +28,9 @@
       "replies": [
         {
           "uuid": "24c73dfb-8666-4d92-af84-af81a8211e97",
-          "userID": 8,
+          "userID": {
+            "$oid": "834738aa315887b7ac928e18"
+          },
           "content": "我也同意",
           "userActions": [],
           "toUUID": "de867ca7-270e-4b00-a7d6-37bd8f073058",
@@ -36,7 +42,9 @@
         },
         {
           "uuid": "55c72dfb-8666-4992-af84-af81a8216667",
-          "userID": 9,
+          "userID": {
+            "$oid": "884738aa3158c7b9ac928e18"
+          },
           "content": "同意个屁",
           "userActions": [],
           "toUUID": "24c73dfb-8666-4d92-af84-af81a8211e97",

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
 
@@ -44,11 +45,19 @@ func (service *PostService) GetPostByID(oid primitive.ObjectID) (post *models.Po
 }
 
 func (service *PostService) NewComment(req *models.NewCommentRequest) (commentUUID string, err error) {
-	comment := models.NewComment(req)
+	comment, err := models.NewComment(req)
+	if err != nil {
+		return
+	}
+	fmt.Println(req.PostOID)
 	statement := bson.M{"$push": bson.M{"comments": comment}}
 	opts := options.FindOneAndUpdate().
 		SetReturnDocument(options.After)
-	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", req.PostOID}}, statement, opts)
+	postOID, err := primitive.ObjectIDFromHex(req.PostOID)
+	if err != nil {
+		return
+	}
+	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.M{"_id": postOID}, statement, opts)
 	err = res.Err()
 	commentUUID = comment.UUID
 	return
@@ -56,6 +65,10 @@ func (service *PostService) NewComment(req *models.NewCommentRequest) (commentUU
 
 func (service *PostService) NewReply(req *models.NewReplyRequest) (newReplyUUID string, err error) {
 	reply := models.NewReply(req)
+	postOID, err := primitive.ObjectIDFromHex(req.PostOID)
+	if err != nil {
+		return
+	}
 	identifier := []interface{}{bson.D{{"commentItem.uuid", bson.D{{"$eq", req.CommentUUID}}}}}
 	update := bson.D{{"$push", bson.D{{"comments.$[commentItem].replies", reply}}}}
 
@@ -65,7 +78,7 @@ func (service *PostService) NewReply(req *models.NewReplyRequest) (newReplyUUID 
 		SetArrayFilters(options.ArrayFilters{Filters: identifier}).
 		SetReturnDocument(options.After)
 	var updatedDoc models.Post
-	err = getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", req.PostOID}}, update, opts).Decode(&updatedDoc)
+	err = getCollection("posts").FindOneAndUpdate(context.TODO(), bson.M{"_id": postOID}, update, opts).Decode(&updatedDoc)
 
 	return
 }
@@ -75,14 +88,15 @@ func exists(filter bson.M) bool {
 	return result.Err() == nil
 }
 
-func (service *PostService) CheckIfAlreadyLiked(req *models.LikePostRequest) (alreadyLiked bool, alreadyDisLiked bool) {
+func (service *PostService) CheckIfAlreadyLiked(postOID, userID primitive.ObjectID) (alreadyLiked bool, alreadyDisLiked bool) {
 	filterCreator := func(position bool) bson.M {
+
 		return bson.M{
-			"_id": req.PostOID,
+			"_id": postOID,
 			"likes": bson.M{
 				"$elemMatch": bson.M{
 					"userID": bson.M{
-						"$eq": req.UserID,
+						"$eq": userID,
 					},
 					"position": bson.M{
 						"$eq": position,
@@ -96,8 +110,16 @@ func (service *PostService) CheckIfAlreadyLiked(req *models.LikePostRequest) (al
 
 // 如果赞过了，就返回
 func (service *PostService) GiveLikeToPost(req *models.LikePostRequest) (err error) {
-	like := models.Like{UserID: req.UserID, TimeStamp: 0, Position: req.Position}
-	alreadyLiked, alreadyDisliked := service.CheckIfAlreadyLiked(req)
+	postOID, err := primitive.ObjectIDFromHex(req.PostOID)
+	if err != nil {
+		return
+	}
+	userID, err := primitive.ObjectIDFromHex(req.UserID)
+	if err != nil {
+		return
+	}
+	like := models.Like{UserID: userID, TimeStamp: 0, Position: req.Position}
+	alreadyLiked, alreadyDisliked := service.CheckIfAlreadyLiked(postOID, userID)
 	var statement bson.M
 	identifier := []interface{}{}
 	incFactory := func(likeInc, dislikeInc int) bson.M {
@@ -106,7 +128,7 @@ func (service *PostService) GiveLikeToPost(req *models.LikePostRequest) (err err
 	modificationFactory := func(position bool, likeInc, dislikeInc int) ([]interface{}, bson.M) {
 		return []interface{}{bson.M{
 				"likeItem.userID": bson.M{
-					"$eq": req.UserID,
+					"$eq": userID,
 				},
 			}}, bson.M{
 				"$set": bson.M{
@@ -139,24 +161,24 @@ func (service *PostService) GiveLikeToPost(req *models.LikePostRequest) (err err
 		SetArrayFilters(options.ArrayFilters{Filters: identifier}).
 		SetReturnDocument(options.After)
 
-	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", req.PostOID}}, statement, opts)
+	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", postOID}}, statement, opts)
 	err = res.Err()
 	return
 }
 
-func (service *PostService) CheckIfCommentAlreadyLiked(req *models.LikeCommentRequest) (alreadyLiked bool, alreadyDisLiked bool) {
+func (service *PostService) CheckIfCommentAlreadyLiked(postOID primitive.ObjectID, userID primitive.ObjectID, commentUUID string) (alreadyLiked bool, alreadyDisLiked bool) {
 	filterCreator := func(pos bool) bson.M {
 		return bson.M{
-			"_id": req.PostOID,
+			"_id": postOID,
 			"comments": bson.M{
 				"$elemMatch": bson.M{
 					"uuid": bson.M{
-						"$eq": req.CommentUUID,
+						"$eq": commentUUID,
 					},
 					"likes": bson.M{
 						"$elemMatch": bson.M{
 							"userID": bson.M{
-								"$eq": req.UserID,
+								"$eq": userID,
 							},
 							"position": bson.M{"$eq": pos},
 						},
@@ -170,8 +192,16 @@ func (service *PostService) CheckIfCommentAlreadyLiked(req *models.LikeCommentRe
 }
 
 func (service *PostService) GiveLikeToComment(req *models.LikeCommentRequest) (err error) {
-	like := models.Like{UserID: req.UserID, TimeStamp: 0, Position: req.Position}
-	alreadyLiked, alreadyDisliked := service.CheckIfCommentAlreadyLiked(req)
+	postOID, err := primitive.ObjectIDFromHex(req.PostOID)
+	if err != nil {
+		return
+	}
+	userID, err := primitive.ObjectIDFromHex(req.UserID)
+	if err != nil {
+		return
+	}
+	like := models.Like{UserID: userID, TimeStamp: 0, Position: req.Position}
+	alreadyLiked, alreadyDisliked := service.CheckIfCommentAlreadyLiked(postOID, userID, req.CommentUUID)
 
 	var statement bson.M
 	identifier := []interface{}{}
@@ -199,7 +229,7 @@ func (service *PostService) GiveLikeToComment(req *models.LikeCommentRequest) (e
 				"$eq": req.CommentUUID,
 			}},
 			bson.M{"likeItem.userID": bson.M{
-				"$eq": req.UserID,
+				"$eq": userID,
 			}},
 		}
 		statement_ := bson.M{
@@ -238,25 +268,25 @@ func (service *PostService) GiveLikeToComment(req *models.LikeCommentRequest) (e
 		SetArrayFilters(options.ArrayFilters{Filters: identifier}).
 		SetReturnDocument(options.After)
 
-	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", req.PostOID}}, statement, opts)
+	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", postOID}}, statement, opts)
 	err = res.Err()
 	return
 }
 
-func (service *PostService) CheckIfReplyAlreadyLiked(req *models.LikeReplyRequest) (alreadyLiked bool, alreadyDisLiked bool) {
+func (service *PostService) CheckIfReplyAlreadyLiked(postOID primitive.ObjectID, userID primitive.ObjectID, commentUUID, replyUUID string) (alreadyLiked bool, alreadyDisLiked bool) {
 
 	createFilter := func(position bool) bson.M {
 		v := bson.M{
-			"_id": req.PostOID,
+			"_id": postOID,
 			"comments": bson.M{
 				"$elemMatch": bson.M{
-					"uuid": bson.M{"$eq": req.CommentUUID},
+					"uuid": bson.M{"$eq": commentUUID},
 					"replies": bson.M{
 						"$elemMatch": bson.M{
-							"uuid": bson.M{"$eq": req.ReplyUUID},
+							"uuid": bson.M{"$eq": replyUUID},
 							"likes": bson.M{
 								"$elemMatch": bson.M{
-									"userID":   bson.M{"$eq": req.UserID},
+									"userID":   bson.M{"$eq": userID},
 									"position": bson.M{"$eq": position},
 								},
 							},
@@ -271,8 +301,16 @@ func (service *PostService) CheckIfReplyAlreadyLiked(req *models.LikeReplyReques
 }
 
 func (service *PostService) GiveLikeToReply(req *models.LikeReplyRequest) (err error) {
-	like := models.Like{UserID: req.UserID, TimeStamp: 0, Position: req.Position}
-	alreadyLiked, alreadyDisliked := service.CheckIfReplyAlreadyLiked(req)
+	userID, err := primitive.ObjectIDFromHex(req.UserID)
+	if err != nil {
+		return
+	}
+	postID, err := primitive.ObjectIDFromHex(req.PostOID)
+	if err != nil {
+		return
+	}
+	like := models.Like{UserID: userID, TimeStamp: 0, Position: req.Position}
+	alreadyLiked, alreadyDisliked := service.CheckIfReplyAlreadyLiked(postID, userID, req.CommentUUID, req.ReplyUUID)
 	var statement bson.M
 	identifier := []interface{}{}
 	pushFactory := func(likeInc, dislikeInc int) ([]interface{}, bson.M) {
@@ -314,7 +352,7 @@ func (service *PostService) GiveLikeToReply(req *models.LikeReplyRequest) (err e
 			},
 			bson.M{
 				"likeItem.userID": bson.M{
-					"$eq": req.UserID,
+					"$eq": userID,
 				},
 			},
 		}
@@ -354,7 +392,7 @@ func (service *PostService) GiveLikeToReply(req *models.LikeReplyRequest) (err e
 		SetArrayFilters(options.ArrayFilters{Filters: identifier}).
 		SetReturnDocument(options.After)
 
-	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", req.PostOID}}, statement, opts)
+	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", postID}}, statement, opts)
 	err = res.Err()
 	return
 }

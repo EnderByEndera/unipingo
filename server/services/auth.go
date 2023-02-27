@@ -1,16 +1,17 @@
 package services
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"melodie-site/server/auth"
-	"melodie-site/server/db"
 	"melodie-site/server/models"
 	"net/http"
 
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type AuthService struct {
@@ -45,17 +46,43 @@ func (service *AuthService) DecryptUserSecret(authUUID uuid.UUID, encryptedMessa
 	return "", errors.New("decrypt failed because authentication progress " + fmt.Sprint(authUUID) + " does not have private key.")
 }
 
-func (service *AuthService) Login(userName, password string) (user models.User, status int, err error) {
-	conn := db.GetDBConn()
+func (service *AuthService) GetUserByName(userName string) (user models.User, err error) {
+	filter := bson.M{"name": userName}
 	user = models.User{}
-	err = conn.Where("name = ?", userName).First(&user).Error
+	err = getCollection("user").FindOne(context.TODO(), filter).Decode(&user)
+	return
+}
+
+// 添加一位用户
+// 注意不要在服务端中使用，而是在测试中用于添加用户的。
+func (service *AuthService) InternalAddUser(userName, password string) (user models.User, err error) {
+	user = models.User{Name: userName, PasswordHash: auth.EncryptPassword(password)}
+	_, err = getCollection("user").InsertOne(context.TODO(), &user)
+	if err != nil {
+		return
+	}
+	user, err = service.GetUserByName(userName)
+	return
+}
+
+func (service *AuthService) InternalRemoveUser(userName string) (err error) {
+	filter := bson.M{"name": userName}
+	_, err = getCollection("user").DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (service *AuthService) Login(userName, password string) (user models.User, status int, err error) {
+	user, err = service.GetUserByName(userName)
 
 	if err != nil {
 		status = http.StatusNotFound
 		return
 	}
 	if !auth.ComparePassword(password, user.PasswordHash) {
-		status = http.StatusUnauthorized
+		status = http.StatusBadRequest
 		return
 	}
 	status = http.StatusOK
@@ -64,12 +91,16 @@ func (service *AuthService) Login(userName, password string) (user models.User, 
 
 func (service *AuthService) GetUserByWechatOpenID(openid string) (user *models.User, err error) {
 	user = &models.User{}
-	err = db.GetDBConn().Where("wechat_openid = ?", openid).First(user).Error
-	return user, err
+	filter := bson.M{"wechatInfo.openID": openid}
+	err = getCollection("user").FindOne(context.TODO(), filter).Decode(user)
+	return
 }
 
 func (service *AuthService) CreateWechatUser(user *models.User) (err error) {
-	err = db.GetDBConn().Create(user).Error
+	_, err = getCollection("user").InsertOne(context.TODO(), user)
+	if err != nil {
+		return
+	}
 	return err
 }
 

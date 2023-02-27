@@ -18,15 +18,15 @@ const (
 )
 
 type Like struct {
-	UserID    int   `bson:"userID" json:"userID"`
-	Position  bool  `bson:"position" json:"position"` //
-	TimeStamp int64 `bson:"time" json:"time"`
+	UserID    primitive.ObjectID `bson:"userID" json:"userID"`
+	Position  bool               `bson:"position" json:"position"` //
+	TimeStamp int64              `bson:"time" json:"time"`
 }
 
 type Favorite struct {
-	UserID                 int    `bson:"userID" json:"userID"`
-	TimeStamp              int64  `bson:"time" json:"time"`
-	FavoriteCollectionUUID string `bson:"favoriteCollectionUUID" json:"favoriteCollectionUUID"`
+	UserID                 primitive.ObjectID `bson:"userID" json:"userID"`
+	TimeStamp              int64              `bson:"time" json:"time"`
+	FavoriteCollectionUUID string             `bson:"favoriteCollectionUUID" json:"favoriteCollectionUUID"`
 }
 
 type SimpleStats struct {
@@ -42,7 +42,7 @@ type PostStats struct {
 
 type Post struct {
 	UUID       string             `bson:"uuid" json:"uuid"`
-	UserID     int                `bson:"userID" json:"userID"`
+	UserID     primitive.ObjectID `bson:"userID" json:"userID"`
 	Content    string             `bson:"content" json:"content"`
 	DocumentID primitive.ObjectID `bson:"_id,omitempty" json:"_oid"`
 	Title      string             `bson:"title" json:"title"`
@@ -62,72 +62,111 @@ func (content *Post) ToIndentedJSON() string {
 
 // 评论
 type Comment struct {
-	UUID       string      `bson:"uuid" json:"uuid"`
-	UserID     int         `bson:"userID" json:"userID"`
-	Content    string      `bson:"content" json:"content"`
-	Statistics SimpleStats `bson:"statistics" json:"statistics"`
-	Replies    []Reply     `bson:"replies" json:"replies"`
-	Likes      []Like      `bson:"likes" json:"likes"`
+	UUID       string             `bson:"uuid" json:"uuid"`
+	UserID     primitive.ObjectID `bson:"userID" json:"userID"`
+	Content    string             `bson:"content" json:"content"`
+	Statistics SimpleStats        `bson:"statistics" json:"statistics"`
+	Replies    []Reply            `bson:"replies" json:"replies"`
+	Likes      []Like             `bson:"likes" json:"likes"`
 }
 
 // 回复
 type Reply struct {
-	UUID       string      `bson:"uuid" json:"uuid"`
-	UserID     int         `bson:"userID" json:"userID"`
-	Content    string      `bson:"content" json:"content"`
-	Statistics SimpleStats `bson:"statistics" json:"statistics"`
-	ToUUID     string      `bson:"toUUID" json:"toUUID"`
-	Likes      []Like      `bson:"likes" json:"likes"`
+	UUID       string             `bson:"uuid" json:"uuid"`
+	UserID     primitive.ObjectID `bson:"userID" json:"userID"`
+	Content    string             `bson:"content" json:"content"`
+	Statistics SimpleStats        `bson:"statistics" json:"statistics"`
+	ToUUID     string             `bson:"toUUID" json:"toUUID"`
+	Likes      []Like             `bson:"likes" json:"likes"`
 }
 
 // 所需用到的请求
 type NewPostRequest struct {
 	Content string `json:"content"`
 	Title   string `json:"title"`
-	UserID  int    `json:"userID"`
+	UserID  string `json:"userID"`
 }
 
 type NewCommentRequest struct {
-	PostOID primitive.ObjectID `json:"postOID"`
-	Content string             `json:"content"`
-	UserID  int                `json:"userID"`
+	PostOID string `json:"postOID"`
+	Content string `json:"content"`
+	UserID  string `json:"userID"`
 }
 
 type NewReplyRequest struct {
-	PostOID     primitive.ObjectID `json:"postOID"`
-	CommentUUID string             `json:"commentUUID"`
-	Content     string             `json:"content"`
-	ToUUID      string             `json:"toUUID"`
-	UserID      int                `json:"userID"`
+	PostOID     string `json:"postOID"`
+	CommentUUID string `json:"commentUUID"`
+	Content     string `json:"content"`
+	ToUUID      string `json:"toUUID"`
+	UserID      string `json:"userID"`
 }
 
 type LikePostRequest struct {
-	PostOID  primitive.ObjectID `json:"postOID"`
-	UserID   int                `json:"userID"`
-	Position bool               `json:"position"`
+	PostOID  string `json:"postOID"`
+	UserID   string `json:"userID"`
+	Position bool   `json:"position"`
 }
 
 type LikeCommentRequest struct {
-	PostOID     primitive.ObjectID `json:"postOID"`
-	CommentUUID string             `json:"commentUUID"`
-	UserID      int                `json:"userID"`
-	Position    bool               `json:"position"`
+	PostOID     string `json:"postOID"`
+	UserID      string `json:"userID"`
+	Position    bool   `json:"position"`
+	CommentUUID string `json:"commentUUID"`
 }
 
 type LikeReplyRequest struct {
-	PostOID     primitive.ObjectID `json:"postOID"`
-	CommentUUID string             `json:"commentUUID"`
-	ReplyUUID   string             `json:"replyUUID"`
-	UserID      int                `json:"userID"`
-	Position    bool               `json:"position"`
+	PostOID     string `json:"postOID"`
+	UserID      string `json:"userID"`
+	Position    bool   `json:"position"`
+	CommentUUID string `json:"commentUUID"`
+	ReplyUUID   string `json:"replyUUID"`
 }
+
+// type LikePostActionMeta struct {
+// 	PostOID  primitive.ObjectID `json:"postOID"`
+// 	UserID   primitive.ObjectID `json:"userID"`
+// 	Position bool               `json:"position"`
+// }
+
+// type LikeCommentActionMeta struct {
+// 	PostOID     primitive.ObjectID `json:"postOID"`
+// 	UserID      primitive.ObjectID `json:"userID"`
+// 	Position    bool               `json:"position"`
+// 	CommentUUID string             `json:"commentUUID"`
+// }
+
+// type LikeReplyActionMeta struct {
+// 	PostOID     primitive.ObjectID `json:"postOID"`
+// 	UserID      primitive.ObjectID `json:"userID"`
+// 	Position    bool               `json:"position"`
+// 	CommentUUID string             `json:"commentUUID"`
+// 	ReplyUUID   string             `json:"replyUUID"`
+// }
+
+// func (req *LikePostRequest) ToActionMeta() (meta *LikePostActionMeta, err error) {
+// 	postOID, err := primitive.ObjectIDFromHex(req.PostOID)
+// 	if err != nil {
+// 		return
+// 	}
+// 	userID, err := primitive.ObjectIDFromHex(req.UserID)
+// 	meta = &LikePostActionMeta{
+// 		PostOID: postOID,
+// 		UserID:  userID,
+// 		Position: ,
+// 	}
+// 	return
+// }
 
 // 所需的方法
 // statistics会被直接初始化，所以无需担心。
-func NewPost(req *NewPostRequest) (post *Post) {
+func NewPost(req *NewPostRequest) (post *Post, err error) {
+	userID, err := primitive.ObjectIDFromHex(req.UserID)
+	if err != nil {
+		return
+	}
 	post = &Post{
 		UUID:       uuid.NewString(),
-		UserID:     req.UserID,
+		UserID:     userID,
 		Content:    req.Content,
 		Title:      req.Title,
 		Comments:   []Comment{},
@@ -138,10 +177,14 @@ func NewPost(req *NewPostRequest) (post *Post) {
 	return
 }
 
-func NewComment(req *NewCommentRequest) (comment *Comment) {
+func NewComment(req *NewCommentRequest) (comment *Comment, err error) {
+	userID, err := primitive.ObjectIDFromHex(req.UserID)
+	if err != nil {
+		return
+	}
 	comment = &Comment{
 		UUID:       uuid.NewString(),
-		UserID:     req.UserID,
+		UserID:     userID,
 		Content:    req.Content,
 		Replies:    []Reply{},
 		Likes:      []Like{},
@@ -151,10 +194,14 @@ func NewComment(req *NewCommentRequest) (comment *Comment) {
 }
 
 func NewReply(req *NewReplyRequest) (comment *Reply) {
+	userID, err := primitive.ObjectIDFromHex(req.UserID)
+	if err != nil {
+		return
+	}
 	comment = &Reply{
 		UUID:       uuid.NewString(),
 		ToUUID:     req.ToUUID,
-		UserID:     req.UserID,
+		UserID:     userID,
 		Content:    req.Content,
 		Likes:      []Like{},
 		Statistics: SimpleStats{0, 0},

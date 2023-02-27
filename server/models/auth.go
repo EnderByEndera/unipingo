@@ -1,15 +1,37 @@
 package models
 
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type WechatInfo struct {
+	OpenID  string `json:"openID" bson:"openID"`
+	UnionID string `json:"unionID" bson:"unionID"`
+}
+
 type User struct {
-	BaseModel
-	Name          string `json:"name" gorm:"column:name;type:text"`
-	EMail         string `json:"email" gorm:"column:email;"`
-	PasswordHash  string `json:"-" gorm:"column:password_hash"`
-	WechatOpenID  string `json:"wechatOpenID" gorm:"column:wechat_openid"`
-	WechatUnionID string `json:"wechatUnionID" gorm:"column:wechat_unionid"`
+	OID          primitive.ObjectID `json:"oid" bson:"_id,omitempty"`
+	Name         string             `json:"name" bson:"name"`
+	EMail        string             `json:"email" bson:"email"`
+	PasswordHash string             `json:"-" bson:"passwordHash"`
+	WechatInfo   WechatInfo         `json:"wechatInfo" bson:"wechatInfo"`
+}
+
+type UserResponse struct {
+	OID        string     `json:"oid"`
+	Name       string     `json:"name"`
+	EMail      string     `json:"email"`
+	WechatInfo WechatInfo `json:"wechatInfo"`
+}
+
+func (userResponse *UserResponse) LoadFromStructUser(user *User) {
+	userResponse.OID = user.OID.Hex()
+	userResponse.Name = user.Name
+	userResponse.EMail = user.EMail
+	userResponse.WechatInfo = user.WechatInfo
 }
 
 type LoginResponse struct {
-	UserInfo User   `json:"user"`
-	JWTToken string `json:"jwtToken"`
+	UserInfo UserResponse `json:"user"`
+	JWTToken string       `json:"jwtToken"`
 }
