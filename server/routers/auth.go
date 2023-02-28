@@ -157,7 +157,7 @@ func LoginWechat(c *gin.Context) {
 	}
 	userResp := models.UserResponse{}
 	userResp.LoadFromStructUser(user)
-	c.JSON(http.StatusAccepted, models.LoginResponse{UserInfo: userResp, JWTToken: jwt})
+	c.JSON(http.StatusOK, models.LoginResponse{UserInfo: userResp, JWTToken: jwt})
 }
 
 func UploadAvatar(ctx *gin.Context) {

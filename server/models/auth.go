@@ -18,7 +18,7 @@ type User struct {
 }
 
 type UserResponse struct {
-	OID        string     `json:"oid"`
+	OID        string     `json:"id"`
 	Name       string     `json:"name"`
 	EMail      string     `json:"email"`
 	WechatInfo WechatInfo `json:"wechatInfo"`

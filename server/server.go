@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"melodie-site/server/auth"
 	"melodie-site/server/routers"
+	"melodie-site/server/services"
 	"melodie-site/server/utils"
 	"net/http"
 
@@ -50,16 +51,46 @@ func TlsHandler() gin.HandlerFunc {
 	}
 }
 
+func Cors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		method := c.Request.Method
+		// if origin != "" {
+		// 可将将* 替换为指定的域名
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+		// c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+		c.Header("Access-Control-Allow-Headers", "*")
+		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		// }
+
+		if method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+		}
+
+		c.Next()
+	}
+}
+
+func initServer() {
+	_, err := services.GetAuthService().GetUserByName("admin")
+	if err != nil {
+		services.GetAuthService().InternalAddUser("admin", "123456")
+	}
+}
+
 func RunServer() {
 	r := gin.Default()
 	r.Use(TlsHandler())
+	r.Use(Cors())
+	initServer()
 	fileRouter := r.Group("/api/file")
 	{
 		fileRouter.GET("/getfile/:file", routers.SendFile)
 	}
 	authRouter := r.Group("/api/auth")
 	{
-		authRouter.POST("/rsa_public_key", routers.CreateRSAPublicKey)
+		authRouter.POST("/rsaPublicKey", routers.CreateRSAPublicKey)
 		authRouter.POST("/login", routers.Login)
 		authRouter.POST("/wechat_login", routers.LoginWechat)
 		authRouter.POST("/upload", routers.UploadAvatar)
