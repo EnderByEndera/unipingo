@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AuthService struct {
@@ -115,6 +116,13 @@ func (service *AuthService) GetWechatSessionKey(authID uuid.UUID) (key string, o
 	} else {
 		ok = true
 	}
+	return
+}
+
+func (service *AuthService) GetUserByID(userID primitive.ObjectID) (user *models.User, err error) {
+	filter := bson.M{"_id": userID}
+	user = &models.User{}
+	err = getCollection("user").FindOne(context.TODO(), filter).Decode(user)
 	return
 }
 

@@ -1,8 +1,5 @@
 {
   "uuid": "1a386186-8e50-4d75-ae89-903306989890",
-  "userID": {
-    "$oid": "834738aa3158c7b7ac928e18"
-  },
   "content": "大学生活很快乐",
   "statistics": {
     "likes": 0,

@@ -14,6 +14,7 @@ type User struct {
 	Name         string             `json:"name" bson:"name"`
 	EMail        string             `json:"email" bson:"email"`
 	PasswordHash string             `json:"-" bson:"passwordHash"`
+	Avatar       string             `json:"avatar" bson:"avatar"`
 	WechatInfo   WechatInfo         `json:"wechatInfo" bson:"wechatInfo"`
 }
 
@@ -24,11 +25,25 @@ type UserResponse struct {
 	WechatInfo WechatInfo `json:"wechatInfo"`
 }
 
+type UserPublicInfo struct {
+	OID    string `json:"id"`
+	Avatar string `json:"avatar"`
+	Name   string `json:"name"`
+}
+
 func (userResponse *UserResponse) LoadFromStructUser(user *User) {
 	userResponse.OID = user.OID.Hex()
 	userResponse.Name = user.Name
 	userResponse.EMail = user.EMail
 	userResponse.WechatInfo = user.WechatInfo
+}
+
+func (user *User) ToPublicInfo() UserPublicInfo {
+	return UserPublicInfo{
+		OID:    user.OID.Hex(),
+		Avatar: user.Avatar,
+		Name:   user.Name,
+	}
 }
 
 type LoginResponse struct {

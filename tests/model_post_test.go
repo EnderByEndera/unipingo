@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,13 +8,13 @@ import (
 	"melodie-site/server/models"
 	"melodie-site/server/services"
 	"testing"
+	"time"
 
 	"github.com/go-playground/assert/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var UserIDHex string = "63f738aa4158c7b7ac928e28"
+var UserIDHex string
 
 func GiveLikeToPost(t *testing.T, insertedDocID primitive.ObjectID) (err error) {
 	err = services.GetPostsService().GiveLikeToPost(&models.LikePostRequest{PostOID: insertedDocID.Hex(), UserID: UserIDHex, Position: true})
@@ -137,9 +136,14 @@ func GiveLikeToReply(t *testing.T, insertedDocID primitive.ObjectID) (err error)
 }
 
 func TestModelPosts(t *testing.T) {
+	user, err := services.GetAuthService().GetUserByName("admin")
+	if err != nil {
+		panic(err)
+	}
+	UserIDHex = user.OID.Hex()
 	byts, _ := ioutil.ReadFile("post.json")
-	post := models.Post{}
-	err := json.Unmarshal(byts, &post)
+	post := models.Post{UserID: user.OID, TimeStamp: uint64(time.Now().UnixMilli())}
+	err = json.Unmarshal(byts, &post)
 	if err != nil {
 		fmt.Println("marshal failed:", err)
 		t.FailNow()
@@ -197,10 +201,10 @@ func TestModelPosts(t *testing.T) {
 		t.FailNow()
 	}
 
-	res11, err := collection.DeleteOne(context.TODO(), bson.D{{"_id", insertedDocID}})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(res11)
+	// res11, err := collection.DeleteOne(context.TODO(), bson.D{{"_id", insertedDocID}})
+	// if err != nil {
+	// 	panic(err)
+	// }
+	fmt.Println(collection, UserIDHex)
 
 }

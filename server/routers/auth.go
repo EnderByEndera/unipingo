@@ -2,6 +2,7 @@ package routers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // authProgressID: 发起临时性的加密会话的ID，一次通信完成之后，相关证书就会被销毁。
@@ -192,6 +194,33 @@ func UploadAvatar(ctx *gin.Context) {
 				"message": "uploaded file ok!",
 			})
 		}
+	}
+
+}
+
+func GetPublicInfo(ctx *gin.Context) {
+	userIDString := ctx.Query("userID")
+	var userID primitive.ObjectID
+	var user *models.User
+	var err error
+	if userIDString != "" {
+		userID, err = primitive.ObjectIDFromHex(userIDString)
+		if err != nil {
+			ctx.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		user, err = services.GetAuthService().GetUserByID(userID)
+		if err != nil {
+			ctx.String(http.StatusBadRequest, err.Error())
+			return
+		} else {
+			ctx.JSON(http.StatusOK, user.ToPublicInfo())
+			return
+		}
+	} else {
+		err = errors.New("userID string was empty")
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
 }

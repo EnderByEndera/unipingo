@@ -42,14 +42,16 @@ type PostStats struct {
 
 type Post struct {
 	UUID       string             `bson:"uuid" json:"uuid"`
+	TimeStamp  uint64             `bson:"timeStamp" json:"timeStamp"`
+	DocumentID primitive.ObjectID `bson:"_id,omitempty" json:"_oid"`
 	UserID     primitive.ObjectID `bson:"userID" json:"userID"`
 	Content    string             `bson:"content" json:"content"`
-	DocumentID primitive.ObjectID `bson:"_id,omitempty" json:"_oid"`
-	Title      string             `bson:"title" json:"title"`
-	Statistics PostStats          `bson:"statistics" json:"statistics"`
-	Comments   []Comment          `bson:"comments" json:"comments"`
-	Likes      []Like             `bson:"likes" json:"likes"`
-	Favorites  []Favorite         `bson:"favorites" json:"favorites"`
+
+	Title      string     `bson:"title" json:"title"`
+	Statistics PostStats  `bson:"statistics" json:"statistics"`
+	Comments   []Comment  `bson:"comments" json:"comments"`
+	Likes      []Like     `bson:"likes" json:"likes"`
+	Favorites  []Favorite `bson:"favorites" json:"favorites"`
 }
 
 func (content *Post) ToIndentedJSON() string {
@@ -63,6 +65,7 @@ func (content *Post) ToIndentedJSON() string {
 // 评论
 type Comment struct {
 	UUID       string             `bson:"uuid" json:"uuid"`
+	TimeStamp  uint64             `bson:"timeStamp" json:"timeStamp"`
 	UserID     primitive.ObjectID `bson:"userID" json:"userID"`
 	Content    string             `bson:"content" json:"content"`
 	Statistics SimpleStats        `bson:"statistics" json:"statistics"`
@@ -73,6 +76,7 @@ type Comment struct {
 // 回复
 type Reply struct {
 	UUID       string             `bson:"uuid" json:"uuid"`
+	TimeStamp  uint64             `bson:"timeStamp" json:"timeStamp"`
 	UserID     primitive.ObjectID `bson:"userID" json:"userID"`
 	Content    string             `bson:"content" json:"content"`
 	Statistics SimpleStats        `bson:"statistics" json:"statistics"`
@@ -120,6 +124,16 @@ type LikeReplyRequest struct {
 	Position    bool   `json:"position"`
 	CommentUUID string `json:"commentUUID"`
 	ReplyUUID   string `json:"replyUUID"`
+}
+
+// 返回的结构体
+type PostOutline struct {
+	PostOID    string         `json:"id"`
+	TimeStamp  uint64         `json:"timeStamp"`
+	User       UserPublicInfo `json:"user"`
+	Title      string         `json:"title"`
+	Content    string         `json:"content"`
+	Statistics PostStats      `json:"statistics"`
 }
 
 // type LikePostActionMeta struct {

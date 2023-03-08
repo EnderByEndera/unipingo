@@ -44,6 +44,22 @@ func (service *PostService) GetPostByID(oid primitive.ObjectID) (post *models.Po
 	return
 }
 
+func (service *PostService) GetAllUserPosts(userid primitive.ObjectID) (posts []models.Post, err error) {
+	posts = make([]models.Post, 0)
+
+	filter := bson.D{{"userID", userid}}
+	cursor, err := getCollection("posts").Find(context.TODO(), filter)
+	if err != nil {
+		return
+	}
+
+	if err = cursor.All(context.TODO(), &posts); err != nil {
+		panic(err)
+	}
+
+	return
+}
+
 func (service *PostService) NewComment(req *models.NewCommentRequest) (commentUUID string, err error) {
 	comment, err := models.NewComment(req)
 	if err != nil {
@@ -395,6 +411,22 @@ func (service *PostService) GiveLikeToReply(req *models.LikeReplyRequest) (err e
 	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", postID}}, statement, opts)
 	err = res.Err()
 	return
+}
+
+func (service *PostService) PostToOutline(post *models.Post) (outline models.PostOutline, err error) {
+	user, err := authService.GetUserByID(post.UserID)
+	if err != nil {
+		return
+	}
+	outline = models.PostOutline{
+		PostOID:    post.DocumentID.Hex(),
+		TimeStamp:  post.TimeStamp,
+		User:       user.ToPublicInfo(),
+		Title:      post.Title,
+		Content:    post.Content,
+		Statistics: post.Statistics,
+	}
+	return outline, nil
 }
 
 func GetPostsService() *PostService {
