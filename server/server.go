@@ -87,13 +87,14 @@ func RunServer() {
 	fileRouter := r.Group("/api/file")
 	{
 		fileRouter.GET("/getfile/:file", routers.SendFile)
+		fileRouter.POST("/upload", routers.UploadAvatar)
 	}
 	authRouter := r.Group("/api/auth")
 	{
 		authRouter.POST("/rsaPublicKey", routers.CreateRSAPublicKey)
 		authRouter.POST("/login", routers.Login)
 		authRouter.POST("/wechatLogin", routers.LoginWechat)
-		authRouter.POST("/upload", routers.UploadAvatar)
+		authRouter.POST("/newStuIDAuth", authMiddleware(), routers.NewStuIDAuthProc) // 提起学生身份验证
 		authRouter.GET("/userPublicInfo", routers.GetPublicInfo)
 	}
 	postsRouter := r.Group("/api/posts")

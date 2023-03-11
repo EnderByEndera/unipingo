@@ -12,14 +12,30 @@ import (
 )
 
 func testPassword(t *testing.T) {
-	_, code, _ := services.GetAuthService().Login("admin", "123456")
+	_, code, _ := services.GetAuthService().Login("user1", "123456")
 	assert.Equal(t, code, http.StatusOK)
-	_, code, _ = services.GetAuthService().Login("admin", "123457")
+	_, code, _ = services.GetAuthService().Login("user1", "123457")
 	assert.Equal(t, code, http.StatusBadRequest)
 }
 
+func testChangePublicInfo(t *testing.T) {
+	user, err := services.GetAuthService().GetUserByName("user1")
+	assert.Equal(t, err, nil)
+	newName := "超超威蓝猫"
+	newAvatar := "1145.jpg"
+	err = services.GetAuthService().UpdateUserPublicInfo(&models.UserPublicInfo{
+		user.OID.Hex(),
+		newAvatar,
+		newName,
+	})
+	assert.Equal(t, err, nil)
+	user, err = services.GetAuthService().GetUserByName(newName)
+	assert.Equal(t, user.Name, newName)
+	assert.Equal(t, user.Avatar, newAvatar)
+}
+
 func TestUser(t *testing.T) {
-	user, err := services.GetAuthService().InternalAddUser("admin", "123456")
+	user, err := services.GetAuthService().InternalAddUser("user1", "123456")
 	assert.Equal(t, err, nil)
 	byts, err := json.Marshal(user)
 	assert.Equal(t, err, nil)
@@ -29,9 +45,10 @@ func TestUser(t *testing.T) {
 	assert.Equal(t, err, nil)
 	fmt.Println("unmarshalled", user1)
 	testPassword(t)
-	err = services.GetAuthService().InternalRemoveUser("admin")
+	testChangePublicInfo(t)
+	err = services.GetAuthService().InternalRemoveUser("user1")
 	fmt.Println(err)
-	_, err = services.GetAuthService().GetUserByName("admin")
+	_, err = services.GetAuthService().GetUserByName("user1")
 	assert.NotEqual(t, err, nil)
 
 }

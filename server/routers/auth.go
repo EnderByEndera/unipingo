@@ -181,7 +181,7 @@ func UploadAvatar(ctx *gin.Context) {
 		})
 	} else {
 		t0 := time.Now()
-		code, err := services.UploadFileByHeaderToOSS(ctx, file)
+		fileName, code, err := services.UploadFileByHeaderToOSS(ctx, file)
 		fmt.Println(time.Since(t0))
 		if err != nil {
 			ctx.JSON(code, gin.H{
@@ -190,8 +190,9 @@ func UploadAvatar(ctx *gin.Context) {
 			})
 		} else {
 			ctx.JSON(code, gin.H{
-				"code":    0,
-				"message": "uploaded file ok!",
+				"code":     0,
+				"message":  "uploaded file ok!",
+				"fileName": fileName,
 			})
 		}
 	}

@@ -24,8 +24,8 @@ func GetFileFromOSS(objectName string) (saveAsFile string, err error) {
 	return
 }
 
-func UploadFileByHeaderToOSS(ctx *gin.Context, fileHeader *multipart.FileHeader) (code int, err error) {
-	ext := utils.SplitExt(fileHeader.Filename)
+func UploadFileByHeaderToOSS(ctx *gin.Context, fileHeader *multipart.FileHeader) (fileName string, code int, err error) {
+	// ext := utils.SplitExt(fileHeader.Filename)
 	f, err := ioutil.TempFile(os.TempDir(), uuid.NewString())
 	defer func() {
 		f.Close()
@@ -42,7 +42,8 @@ func UploadFileByHeaderToOSS(ctx *gin.Context, fileHeader *multipart.FileHeader)
 		code = http.StatusInternalServerError
 		return
 	}
-	utils.PutFile(utils.GetOSSHandler().Buckets.Files, uuid.NewString()+"."+ext, f.Name(), fileHeader.Header.Get("Content-Type"))
+	fileName = uuid.NewString()
+	utils.PutFile(utils.GetOSSHandler().Buckets.Files, fileName, f.Name(), fileHeader.Header.Get("Content-Type"))
 	code = http.StatusOK
 	return
 }

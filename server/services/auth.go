@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type AuthService struct {
@@ -58,6 +59,7 @@ func (service *AuthService) GetUserByName(userName string) (user models.User, er
 // 注意不要在服务端中使用，而是在测试中用于添加用户的。
 func (service *AuthService) InternalAddUser(userName, password string) (user models.User, err error) {
 	user = models.User{Name: userName, PasswordHash: auth.EncryptPassword(password)}
+
 	_, err = getCollection("user").InsertOne(context.TODO(), &user)
 	if err != nil {
 		return
@@ -123,6 +125,22 @@ func (service *AuthService) GetUserByID(userID primitive.ObjectID) (user *models
 	filter := bson.M{"_id": userID}
 	user = &models.User{}
 	err = getCollection("user").FindOne(context.TODO(), filter).Decode(user)
+	return
+}
+
+// PublicInfo是公开的，更新时只要有token即可，无需进行校验。
+// 所以是所有PublicInfo一起更新的。
+func (service *AuthService) UpdateUserPublicInfo(req *models.UserPublicInfo) (err error) {
+	statement := bson.M{"$set": req}
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+	userOID, err := primitive.ObjectIDFromHex(req.OID)
+	fmt.Println(userOID)
+	if err != nil {
+		return
+	}
+	res := getCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userOID}, statement, opts)
+	err = res.Err()
 	return
 }
 
