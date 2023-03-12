@@ -9,6 +9,7 @@ import (
 	"melodie-site/server/auth"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
+	"melodie-site/server/utils"
 	"net/http"
 	"net/url"
 	"time"
@@ -157,9 +158,7 @@ func LoginWechat(c *gin.Context) {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	userResp := models.UserResponse{}
-	userResp.LoadFromStructUser(user)
-	c.JSON(http.StatusOK, models.LoginResponse{UserInfo: userResp, JWTToken: jwt})
+	c.JSON(http.StatusOK, models.LoginResponse{JWTToken: jwt})
 }
 
 func UploadAvatar(ctx *gin.Context) {
@@ -199,8 +198,18 @@ func UploadAvatar(ctx *gin.Context) {
 
 }
 
+// 获取用户的公共可见信息。
+// 如果没有请求参数，则直接从jwt token中读取。
 func GetPublicInfo(ctx *gin.Context) {
 	userIDString := ctx.Query("userID")
+	if userIDString == "" {
+		claims, err := utils.GetClaims(ctx)
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+		userIDString = claims.UserID
+	}
 	var userID primitive.ObjectID
 	var user *models.User
 	var err error

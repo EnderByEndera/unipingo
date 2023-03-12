@@ -26,7 +26,7 @@ type StudentIdentityAuthentication struct {
 	SchoolName  string                                   `json:"schoolName" bson:"schoolName"`
 	Status      int                                      `json:"status" bson:"status"`
 	Photographs StudentIdentityAuthenticationPhotographs `json:"photos" bson:"photos"`
-	Suggestions string                                   `json:"suggestions" bson:"suggestions"`
+	Suggestion  string                                   `json:"suggestion" bson:"suggestion"`
 }
 
 type NewStudentIdentityAuthenticationRequest struct {
@@ -35,9 +35,9 @@ type NewStudentIdentityAuthenticationRequest struct {
 }
 
 type ModifyStuIDAuthStatRequest struct {
-	UserID      string `json:"userID"`
-	Status      int    `json:"status"`
-	Suggestions string `json:"suggestions"`
+	UserID     string `json:"userID"`
+	Status     int    `json:"status"`
+	Suggestion string `json:"suggestion"`
 }
 
 func (req *NewStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) (auth StudentIdentityAuthentication, err error) {
@@ -49,7 +49,7 @@ func (req *NewStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) 
 		UserID:      oid,
 		Photographs: req.Photographs,
 		Status:      StudentIdentityPhotoUploaded,
-		Suggestions: "",
+		Suggestion:  "",
 		SchoolName:  req.SchoolName,
 	}
 	return

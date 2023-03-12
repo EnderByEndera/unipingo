@@ -147,7 +147,7 @@ func (service *AuthService) UpdateUserPublicInfo(req *models.UserPublicInfo) (er
 // PublicInfo是公开的，更新时只要有token即可，无需进行校验。
 // 所以是所有PublicInfo一起更新的。
 func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, schoolInfo *models.SchoolInfo) (err error) {
-	statement := bson.M{"$set": bson.M{"schoolInfo": schoolInfo}}
+	statement := bson.M{"$set": bson.M{"publicMeta.school": schoolInfo}}
 	opts := options.FindOneAndUpdate().
 		SetReturnDocument(options.After)
 	if err != nil {

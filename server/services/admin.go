@@ -76,16 +76,17 @@ func (adminService *AdminService) UpdateStuIDAuthStatus(req *models.ModifyStuIDA
 	proc, err := adminService.GetStuIDAuthProc(userID)
 	if err == nil {
 		filter := bson.M{"userID": userID}
-		err = getCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": bson.M{"status": req.Status, "suggestions": req.Suggestions}}).Err()
-		if req.Status == models.StudentIdentityAuthenticated {
-			err = GetAuthService().UpdateUserSchoolInfo(userID, &models.SchoolInfo{
-				Name:     proc.SchoolName,
-				Verified: true,
-			})
-			if err != nil {
-				return
-			}
+		fmt.Println(req)
+		err = getCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": bson.M{"status": req.Status, "suggestion": req.Suggestion}}).Err()
+
+		err = GetAuthService().UpdateUserSchoolInfo(userID, &models.SchoolInfo{
+			Name:   proc.SchoolName,
+			Status: req.Status,
+		})
+		if err != nil {
+			return
 		}
+
 		return
 	}
 	return

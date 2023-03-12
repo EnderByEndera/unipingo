@@ -16,8 +16,17 @@ type WechatInfo struct {
 }
 
 type SchoolInfo struct {
-	Name     string `json:"name" bson:"name"`
-	Verified bool   `json:"verified" bson:"verified"`
+	Name   string `json:"name" bson:"name"`
+	Status int    `json:"status" bson:"status"`
+}
+
+type RegionInfo struct {
+	GaokaoRegion string `json:"gaokaoRegion" bson:"gaokaoRegion"`
+}
+
+type UserPublicMeta struct {
+	School SchoolInfo `json:"school" bson:"school"`
+	Region RegionInfo `json:"region" bson:"region"`
 }
 
 type User struct {
@@ -28,38 +37,27 @@ type User struct {
 	PasswordHash string             `json:"-" bson:"passwordHash"`
 	Avatar       string             `json:"avatar" bson:"avatar"`
 	WechatInfo   WechatInfo         `json:"wechatInfo" bson:"wechatInfo"`
-	School       SchoolInfo         `json:"schoolInfo" bson:"schoolInfo"`
-}
-
-type UserResponse struct {
-	OID        string     `json:"id"`
-	Name       string     `json:"name"`
-	EMail      string     `json:"email"`
-	WechatInfo WechatInfo `json:"wechatInfo"`
+	PublicMeta   UserPublicMeta     `json:"publicMeta" bson:"publicMeta"`
 }
 
 type UserPublicInfo struct {
-	OID    string `json:"id"`
-	Avatar string `json:"avatar" bson:"avatar"`
-	Name   string `json:"name" bson:"name"`
-}
-
-func (userResponse *UserResponse) LoadFromStructUser(user *User) {
-	userResponse.OID = user.OID.Hex()
-	userResponse.Name = user.Name
-	userResponse.EMail = user.EMail
-	userResponse.WechatInfo = user.WechatInfo
+	OID        string         `json:"id"`
+	Avatar     string         `json:"avatar" bson:"avatar"`
+	Name       string         `json:"name" bson:"name"`
+	Role       string         `json:"role"`
+	PublicMeta UserPublicMeta `json:"publicMeta"`
 }
 
 func (user *User) ToPublicInfo() UserPublicInfo {
 	return UserPublicInfo{
-		OID:    user.OID.Hex(),
-		Avatar: user.Avatar,
-		Name:   user.Name,
+		OID:        user.OID.Hex(),
+		Avatar:     user.Avatar,
+		Name:       user.Name,
+		Role:       user.Role,
+		PublicMeta: user.PublicMeta,
 	}
 }
 
 type LoginResponse struct {
-	UserInfo UserResponse `json:"user"`
-	JWTToken string       `json:"jwtToken"`
+	JWTToken string `json:"jwtToken"`
 }

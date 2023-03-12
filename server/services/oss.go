@@ -25,7 +25,6 @@ func GetFileFromOSS(objectName string) (saveAsFile string, err error) {
 }
 
 func UploadFileByHeaderToOSS(ctx *gin.Context, fileHeader *multipart.FileHeader) (fileName string, code int, err error) {
-	// ext := utils.SplitExt(fileHeader.Filename)
 	f, err := ioutil.TempFile(os.TempDir(), uuid.NewString())
 	defer func() {
 		f.Close()

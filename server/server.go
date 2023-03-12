@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"melodie-site/server/auth"
 	"melodie-site/server/models"
 	"melodie-site/server/routers"
@@ -16,7 +15,6 @@ import (
 func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken := c.Request.Header.Get("X-Access-Token")
-		fmt.Println("token", accessToken)
 
 		// err := auth.VerifyJWTString(accessToken)
 		claims, valid, err := auth.ParseJWTString(accessToken)
@@ -103,7 +101,7 @@ func RunServer() {
 		authRouter.GET("/unhandledStuIDAuths", authMiddleware(), routers.GetUnhandledProcs)      // 获取所有未完成的学生身份验证
 		authRouter.GET("/stuIDAuth", authMiddleware(), routers.GetStuIDAuthProc)                 // 获取所有未完成的学生身份验证
 		authRouter.POST("/setStuIDAuthStatus", authMiddleware(), routers.SetStudentIDAuthStatus) // 获取所有未完成的学生身份验证
-		authRouter.GET("/userPublicInfo", routers.GetPublicInfo)
+		authRouter.GET("/userPublicInfo", authMiddleware(), routers.GetPublicInfo)
 	}
 	postsRouter := r.Group("/api/posts")
 	{
