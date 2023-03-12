@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"melodie-site/server/auth"
+	"melodie-site/server/models"
 	"melodie-site/server/routers"
 	"melodie-site/server/services"
 	"melodie-site/server/utils"
@@ -75,7 +76,11 @@ func Cors() gin.HandlerFunc {
 func initServer() {
 	_, err := services.GetAuthService().GetUserByName("admin")
 	if err != nil {
-		services.GetAuthService().InternalAddUser("admin", "123456")
+		services.GetAuthService().InternalAddUser("admin", "123456", models.RoleAdmin)
+	}
+	_, err = services.GetAuthService().GetUserByName("demo-unpaid-user")
+	if err != nil {
+		services.GetAuthService().InternalAddUser("demo-unpaid-user", "123456", models.RoleUnpaidUser)
 	}
 }
 
@@ -94,28 +99,16 @@ func RunServer() {
 		authRouter.POST("/rsaPublicKey", routers.CreateRSAPublicKey)
 		authRouter.POST("/login", routers.Login)
 		authRouter.POST("/wechatLogin", routers.LoginWechat)
-		authRouter.POST("/newStuIDAuth", authMiddleware(), routers.NewStuIDAuthProc) // 提起学生身份验证
+		authRouter.POST("/newStuIDAuth", authMiddleware(), routers.NewStuIDAuthProc)             // 提起学生身份验证
+		authRouter.GET("/unhandledStuIDAuths", authMiddleware(), routers.GetUnhandledProcs)      // 获取所有未完成的学生身份验证
+		authRouter.GET("/stuIDAuth", authMiddleware(), routers.GetStuIDAuthProc)                 // 获取所有未完成的学生身份验证
+		authRouter.POST("/setStuIDAuthStatus", authMiddleware(), routers.SetStudentIDAuthStatus) // 获取所有未完成的学生身份验证
 		authRouter.GET("/userPublicInfo", routers.GetPublicInfo)
 	}
 	postsRouter := r.Group("/api/posts")
 	{
 		postsRouter.GET("/all", routers.GetAllUserPosts)
 	}
-	// articlesRouter := r.Group("/api/articles")
-	// {
-	// 	articlesRouter.GET("/all", authMiddleware(), routers.GetAllArticles)
-	// 	articlesRouter.GET("/article", routers.GetArticle)
-	// 	articlesRouter.POST("/create", authMiddleware(), routers.CreateArticle)
-	// 	articlesRouter.POST("/update", authMiddleware(), routers.UpdateArticle)
-	// }
-	// tagsRouter := r.Group("/api/tags")
-	// {
-	// 	tagsRouter.GET("/tag", routers.GetTag)
-	// 	tagsRouter.GET("/all", routers.GetAllTags)
-	// 	tagsRouter.POST("/create", authMiddleware(), routers.CreateTag)
-	// 	tagsRouter.POST("/update", authMiddleware(), routers.UpdateTag)
-	// }
-	// r.Run("0.0.0.0:8787")
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
 
 }

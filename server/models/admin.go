@@ -5,7 +5,8 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 const (
 	StudentIdentityUnauthenticated int = 0 //
 	StudentIdentityPhotoUploaded   int = 1 // 照片已上传，等待管理员审核
-	StudentIdentityAuthenticated   int = 2
+	StudentIdentityAuthenticated   int = 2 // 审核通过
+	StudentIdentityUnQualified     int = 3 // 被打回
 )
 
 type StudentIdentityAuthenticationPhotographs struct {
@@ -22,13 +23,21 @@ type StudentIdentityAuthenticationPhotographs struct {
 // 学生认证流程
 type StudentIdentityAuthentication struct {
 	UserID      primitive.ObjectID                       `json:"userID" bson:"userID"`
+	SchoolName  string                                   `json:"schoolName" bson:"schoolName"`
 	Status      int                                      `json:"status" bson:"status"`
 	Photographs StudentIdentityAuthenticationPhotographs `json:"photos" bson:"photos"`
 	Suggestions string                                   `json:"suggestions" bson:"suggestions"`
 }
 
 type NewStudentIdentityAuthenticationRequest struct {
+	SchoolName  string                                   `json:"schoolName"`
 	Photographs StudentIdentityAuthenticationPhotographs `json:"photos"`
+}
+
+type ModifyStuIDAuthStatRequest struct {
+	UserID      string `json:"userID"`
+	Status      int    `json:"status"`
+	Suggestions string `json:"suggestions"`
 }
 
 func (req *NewStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) (auth StudentIdentityAuthentication, err error) {
@@ -41,6 +50,7 @@ func (req *NewStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) 
 		Photographs: req.Photographs,
 		Status:      StudentIdentityPhotoUploaded,
 		Suggestions: "",
+		SchoolName:  req.SchoolName,
 	}
 	return
 }

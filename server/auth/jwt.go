@@ -13,13 +13,15 @@ var mySigningKey = []byte("AllYourBase")
 
 type MelodieSiteClaims struct {
 	UserID string
+	Role   string
 	jwt.RegisteredClaims
 }
 
-func CreateJWTString(userID primitive.ObjectID) (string, error) {
+func CreateJWTString(userID primitive.ObjectID, userRole string) (string, error) {
 	mm, _ := time.ParseDuration("48h")
 	claims := MelodieSiteClaims{
 		userID.Hex(),
+		userRole,
 		jwt.RegisteredClaims{
 			// Also fixed dates can be used for the NumericDate
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(mm)),

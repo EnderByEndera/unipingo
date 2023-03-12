@@ -4,17 +4,20 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type roles struct {
-	Admin      string // admin可以看到学生资质审核的流程。
-	UnpaidUser string
-	PaidUser   string
-}
-
-var Roles roles = roles{"admin", "unpaid", "paid"}
+const (
+	RoleAdmin      string = "ROLE_ADMIN"
+	RoleUnpaidUser string = "ROLE_UNPAID_USER"
+	RolePaidUser   string = "ROLE_PAID_USER"
+)
 
 type WechatInfo struct {
 	OpenID  string `json:"openID" bson:"openID"`
 	UnionID string `json:"unionID" bson:"unionID"`
+}
+
+type SchoolInfo struct {
+	Name     string `json:"name" bson:"name"`
+	Verified bool   `json:"verified" bson:"verified"`
 }
 
 type User struct {
@@ -25,6 +28,7 @@ type User struct {
 	PasswordHash string             `json:"-" bson:"passwordHash"`
 	Avatar       string             `json:"avatar" bson:"avatar"`
 	WechatInfo   WechatInfo         `json:"wechatInfo" bson:"wechatInfo"`
+	School       SchoolInfo         `json:"schoolInfo" bson:"schoolInfo"`
 }
 
 type UserResponse struct {

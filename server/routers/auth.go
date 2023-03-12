@@ -73,7 +73,7 @@ func Login(c *gin.Context) {
 		c.String(status, err.Error())
 		return
 	} else {
-		jwt, err := auth.CreateJWTString(user.OID)
+		jwt, err := auth.CreateJWTString(user.OID, user.Role)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
@@ -152,7 +152,7 @@ func LoginWechat(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 	}
-	jwt, err := auth.CreateJWTString(user.OID)
+	jwt, err := auth.CreateJWTString(user.OID, user.Role)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return

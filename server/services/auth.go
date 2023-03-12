@@ -57,8 +57,8 @@ func (service *AuthService) GetUserByName(userName string) (user models.User, er
 
 // 添加一位用户
 // 注意不要在服务端中使用，而是在测试中用于添加用户的。
-func (service *AuthService) InternalAddUser(userName, password string) (user models.User, err error) {
-	user = models.User{Name: userName, PasswordHash: auth.EncryptPassword(password)}
+func (service *AuthService) InternalAddUser(userName, password, role string) (user models.User, err error) {
+	user = models.User{Name: userName, Role: role, PasswordHash: auth.EncryptPassword(password)}
 
 	_, err = getCollection("user").InsertOne(context.TODO(), &user)
 	if err != nil {
@@ -140,6 +140,20 @@ func (service *AuthService) UpdateUserPublicInfo(req *models.UserPublicInfo) (er
 		return
 	}
 	res := getCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userOID}, statement, opts)
+	err = res.Err()
+	return
+}
+
+// PublicInfo是公开的，更新时只要有token即可，无需进行校验。
+// 所以是所有PublicInfo一起更新的。
+func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, schoolInfo *models.SchoolInfo) (err error) {
+	statement := bson.M{"$set": bson.M{"schoolInfo": schoolInfo}}
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+	if err != nil {
+		return
+	}
+	res := getCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, statement, opts)
 	err = res.Err()
 	return
 }
