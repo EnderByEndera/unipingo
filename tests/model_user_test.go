@@ -21,21 +21,19 @@ func testPassword(t *testing.T) {
 func testChangePublicInfo(t *testing.T) {
 	user, err := services.GetAuthService().GetUserByName("user1")
 	assert.Equal(t, err, nil)
-	newName := "超超威蓝猫"
+	// newName := "超超威蓝猫"
 	newAvatar := "1145.jpg"
-	err = services.GetAuthService().UpdateUserPublicInfo(&models.UserPublicInfo{
-		user.OID.Hex(),
-		newAvatar,
-		newName,
+	err = services.GetAuthService().UpdateUserPublicInfo(user.OID, &models.UserPublicInfoUpdateRequest{
+		Avatar: newAvatar,
 	})
 	assert.Equal(t, err, nil)
-	user, err = services.GetAuthService().GetUserByName(newName)
-	assert.Equal(t, user.Name, newName)
+	user, err = services.GetAuthService().GetUserByName("user1")
+	// assert.Equal(t, user.Name, newName)
 	assert.Equal(t, user.Avatar, newAvatar)
 }
 
 func TestUser(t *testing.T) {
-	user, err := services.GetAuthService().InternalAddUser("user1", "123456")
+	user, err := services.GetAuthService().InternalAddUser("user1", "123456", models.RoleUnpaidUser)
 	assert.Equal(t, err, nil)
 	byts, err := json.Marshal(user)
 	assert.Equal(t, err, nil)

@@ -37,9 +37,3 @@ func GetMongoConn() *MongoConnection {
 	}
 	return mongoConn
 }
-
-func GetCollection(collectionName string) (collection *mongo.Collection) {
-	conn := GetMongoConn()
-	collection = conn.Client.Database("blog").Collection(collectionName)
-	return
-}

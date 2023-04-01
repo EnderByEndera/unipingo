@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"melodie-site/server/auth"
-	"melodie-site/server/db"
 	"melodie-site/server/models"
 	"net/http"
 
@@ -52,7 +51,7 @@ func (service *AuthService) DecryptUserSecret(authUUID uuid.UUID, encryptedMessa
 func (service *AuthService) GetUserByName(userName string) (user models.User, err error) {
 	filter := bson.M{"name": userName}
 	user = models.User{}
-	err = db.GetCollection("user").FindOne(context.TODO(), filter).Decode(&user)
+	err = getCollection("user").FindOne(context.TODO(), filter).Decode(&user)
 	return
 }
 
@@ -61,7 +60,7 @@ func (service *AuthService) GetUserByName(userName string) (user models.User, er
 func (service *AuthService) InternalAddUser(userName, password, role string) (user models.User, err error) {
 	user = models.User{Name: userName, Role: role, PasswordHash: auth.EncryptPassword(password)}
 
-	_, err = db.GetCollection("user").InsertOne(context.TODO(), &user)
+	_, err = getCollection("user").InsertOne(context.TODO(), &user)
 	if err != nil {
 		return
 	}
@@ -71,7 +70,7 @@ func (service *AuthService) InternalAddUser(userName, password, role string) (us
 
 func (service *AuthService) InternalRemoveUser(userName string) (err error) {
 	filter := bson.M{"name": userName}
-	_, err = db.GetCollection("user").DeleteOne(context.TODO(), filter)
+	_, err = getCollection("user").DeleteOne(context.TODO(), filter)
 	if err != nil {
 		return
 	}
@@ -96,12 +95,12 @@ func (service *AuthService) Login(userName, password string) (user models.User, 
 func (service *AuthService) GetUserByWechatOpenID(openid string) (user *models.User, err error) {
 	user = &models.User{}
 	filter := bson.M{"wechatInfo.openID": openid}
-	err = db.GetCollection("user").FindOne(context.TODO(), filter).Decode(user)
+	err = getCollection("user").FindOne(context.TODO(), filter).Decode(user)
 	return
 }
 
 func (service *AuthService) CreateWechatUser(user *models.User) (err error) {
-	_, err = db.GetCollection("user").InsertOne(context.TODO(), user)
+	_, err = getCollection("user").InsertOne(context.TODO(), user)
 	if err != nil {
 		return
 	}
@@ -125,7 +124,7 @@ func (service *AuthService) GetWechatSessionKey(authID uuid.UUID) (key string, o
 func (service *AuthService) GetUserByID(userID primitive.ObjectID) (user *models.User, err error) {
 	filter := bson.M{"_id": userID}
 	user = &models.User{}
-	err = db.GetCollection("user").FindOne(context.TODO(), filter).Decode(user)
+	err = getCollection("user").FindOne(context.TODO(), filter).Decode(user)
 	return
 }
 
@@ -138,7 +137,7 @@ func (service *AuthService) UpdateUserPublicInfo(userID primitive.ObjectID, req 
 	if err != nil {
 		return
 	}
-	res := db.GetCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, statement, opts)
+	res := getCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, statement, opts)
 	err = res.Err()
 	return
 }
@@ -152,7 +151,7 @@ func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, scho
 	if err != nil {
 		return
 	}
-	res := db.GetCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, statement, opts)
+	res := getCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, statement, opts)
 	err = res.Err()
 	return
 }

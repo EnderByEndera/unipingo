@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"melodie-site/server/db"
 	"melodie-site/server/models"
 	"net/http"
 
@@ -29,7 +28,7 @@ func GetAdminService() *AdminService {
 func (adminService *AdminService) GetStuIDAuthProc(userID primitive.ObjectID) (authProc models.StudentIdentityAuthentication, err error) {
 	filter := bson.M{"userID": userID}
 	authProc = models.StudentIdentityAuthentication{}
-	err = db.GetCollection("auth").FindOne(context.TODO(), filter).Decode(&authProc)
+	err = getCollection("auth").FindOne(context.TODO(), filter).Decode(&authProc)
 
 	return
 }
@@ -40,12 +39,12 @@ func (adminService *AdminService) NewStuIDAuthProc(auth *models.StudentIdentityA
 		err = errors.New("record already exists for user: " + auth.UserID.Hex())
 		filter := bson.M{"userID": auth.UserID}
 		fmt.Println(err, auth)
-		err = db.GetCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": auth}).Err()
+		err = getCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": auth}).Err()
 
 		code = http.StatusConflict // 返回资源冲突409。
 		return
 	}
-	_, err = db.GetCollection("auth").InsertOne(context.TODO(), auth)
+	_, err = getCollection("auth").InsertOne(context.TODO(), auth)
 	if err != nil {
 		code = http.StatusBadRequest
 		return
@@ -58,7 +57,7 @@ func (adminService *AdminService) GetUnhandledStuIDAuthProcs() (authProcs []mode
 	authProcs = make([]models.StudentIdentityAuthentication, 0)
 
 	filter := bson.M{"status": models.StudentIdentityPhotoUploaded}
-	cursor, err := db.GetCollection("auth").Find(context.TODO(), filter)
+	cursor, err := getCollection("auth").Find(context.TODO(), filter)
 	if err != nil {
 		return
 	}
@@ -78,7 +77,7 @@ func (adminService *AdminService) UpdateStuIDAuthStatus(req *models.ModifyStuIDA
 	if err == nil {
 		filter := bson.M{"userID": userID}
 		fmt.Println(req)
-		err = db.GetCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": bson.M{"status": req.Status, "suggestion": req.Suggestion}}).Err()
+		err = getCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": bson.M{"status": req.Status, "suggestion": req.Suggestion}}).Err()
 
 		err = GetAuthService().UpdateUserSchoolInfo(userID, &models.SchoolInfo{
 			Name:   proc.SchoolName,

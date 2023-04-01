@@ -1,4 +1,4 @@
-package server
+package server_old
 
 import (
 	"melodie-site/server/auth"
@@ -103,10 +103,10 @@ func RunServer() {
 		authRouter.POST("/setStuIDAuthStatus", authMiddleware(), routers.SetStudentIDAuthStatus) // 获取所有未完成的学生身份验证
 		authRouter.GET("/userPublicInfo", authMiddleware(), routers.GetPublicInfo)
 	}
-	// postsRouter := r.Group("/api/posts")
-	// {
-	// 	postsRouter.GET("/all", routers.GetAllUserPosts)
-	// }
+	postsRouter := r.Group("/api/posts")
+	{
+		postsRouter.GET("/all", routers.GetAllUserPosts)
+	}
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
 
 }
