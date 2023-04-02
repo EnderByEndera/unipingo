@@ -23,7 +23,7 @@ func testChangePublicInfo(t *testing.T) {
 	assert.Equal(t, err, nil)
 	// newName := "超超威蓝猫"
 	newAvatar := "1145.jpg"
-	err = services.GetAuthService().UpdateUserPublicInfo(user.OID, &models.UserPublicInfoUpdateRequest{
+	err = services.GetAuthService().UpdateUserPublicInfo(user.ID, &models.UserPublicInfoUpdateRequest{
 		Avatar: newAvatar,
 	})
 	assert.Equal(t, err, nil)

@@ -140,9 +140,9 @@ func TestModelPosts(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	UserIDHex = user.OID.Hex()
+	UserIDHex = user.ID.Hex()
 	byts, _ := ioutil.ReadFile("post.json")
-	post := models.Post{UserID: user.OID, TimeStamp: uint64(time.Now().UnixMilli())}
+	post := models.Post{UserID: user.ID, TimeStamp: uint64(time.Now().UnixMilli())}
 	err = json.Unmarshal(byts, &post)
 	if err != nil {
 		fmt.Println("marshal failed:", err)

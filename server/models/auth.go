@@ -32,16 +32,37 @@ type UserFreeToModifyMeta struct {
 	Region RegionInfo `json:"region" bson:"region"`
 }
 
+type EduBGItem struct {
+	MajorID        primitive.ObjectID `json:"majorID" bson:"majorID"`
+	MajorName      string             `json:"majorName" bson:"majorName"`
+	HEIID          primitive.ObjectID `json:"heiID" bson:"heiID"`
+	HEIName        string             `json:"heiName" bson:"heiName"`
+	EnrollmentTime uint64             `json:"enrollmentTime" bson:"enrollmentTime"`
+	GraduationTime uint64             `json:"graduationTime" bson:"graduationTime"`
+}
+
+type CollectionItem struct {
+	Type string             `json:"type" bson:"type"`
+	ID   primitive.ObjectID `json:"id" bson:"id"`
+	Text string             `json:"text" bson:"text"`
+}
+
 type User struct {
-	OID              primitive.ObjectID   `json:"oid" bson:"_id,omitempty"`
-	Role             string               `json:"role" bson:"role"`
-	Name             string               `json:"name" bson:"name"`
-	EMail            string               `json:"email" bson:"email"`
-	PasswordHash     string               `json:"-" bson:"passwordHash"`
-	Avatar           string               `json:"avatar" bson:"avatar"`
-	WechatInfo       WechatInfo           `json:"wechatInfo" bson:"wechatInfo"`
-	PublicMeta       UserPublicMeta       `json:"publicMeta" bson:"publicMeta"`
-	FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
+	ID                    primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Role                  string             `json:"role" bson:"role"`
+	Name                  string             `json:"name" bson:"name"`
+	EMail                 string             `json:"email" bson:"email"`
+	PasswordHash          string             `json:"-" bson:"passwordHash"`
+	Avatar                string             `json:"avatar" bson:"avatar"`
+	WechatInfo            WechatInfo         `json:"wechatInfo" bson:"wechatInfo"`
+	Gender                string             `json:"gender" bson:"gender"`
+	Birthday              uint64             `json:"birthday" bson:"birthday"`
+	EducationalBackground []EduBGItem        `json:"educationalBackground" bson:"educationalBackground"`
+	Collection            []CollectionItem   `json:"collection" bson:"collection"`
+	Type                  string             `json:"type" bson:"type"`
+	Membership            string             `json:"membership" bson:"membership"`
+	// PublicMeta   UserPublicMeta     `json:"publicMeta" bson:"publicMeta"`
+	// FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
 }
 
 type UserPublicInfo struct {
@@ -55,12 +76,12 @@ type UserPublicInfo struct {
 
 func (user *User) ToPublicInfo() UserPublicInfo {
 	return UserPublicInfo{
-		OID:              user.OID.Hex(),
-		Avatar:           user.Avatar,
-		Name:             user.Name,
-		Role:             user.Role,
-		PublicMeta:       user.PublicMeta,
-		FreeToModifyMeta: user.FreeToModifyMeta,
+		OID:    user.ID.Hex(),
+		Avatar: user.Avatar,
+		Name:   user.Name,
+		Role:   user.Role,
+		// PublicMeta: user.PublicMeta,
+		// FreeToModifyMeta: user.FreeToModifyMeta,
 	}
 }
 

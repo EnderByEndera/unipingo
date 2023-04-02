@@ -56,11 +56,30 @@ func (service *AuthService) GetUserByName(userName string) (user models.User, er
 	return
 }
 
+// 判断用户是否为校友
+func (service *AuthService) IsAlumn(userID primitive.ObjectID, heiID primitive.ObjectID) (isAlumn bool, err error) {
+	filter := bson.M{
+		"_id": userID,
+		"educationalBackground": bson.M{
+			"$elemMatch": bson.M{
+				"heiID": bson.M{
+					"$eq": heiID,
+				},
+			},
+		},
+	}
+	res := db.GetCollection("user").FindOne(context.TODO(), filter)
+	isAlumn = (res.Err() == nil)
+	return
+}
+
 // 添加一位用户
 // 注意不要在服务端中使用，而是在测试中用于添加用户的。
-func (service *AuthService) InternalAddUser(userName, password, role string) (user models.User, err error) {
+func (service *AuthService) InternalAddUser(userName, password, role string, processor func(u *models.User)) (user models.User, err error) {
 	user = models.User{Name: userName, Role: role, PasswordHash: auth.EncryptPassword(password)}
-
+	if processor != nil {
+		processor(&user)
+	}
 	_, err = db.GetCollection("user").InsertOne(context.TODO(), &user)
 	if err != nil {
 		return
