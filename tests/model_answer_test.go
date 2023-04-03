@@ -59,6 +59,8 @@ func TestModelPosts(t *testing.T) {
 	err = services.GetPostsService().GiveLikeToPost(user.ID, insertedDocID)
 	assert.Equal(t, err, nil)
 
+	err = services.GetPostsService().GiveLikeToPost(user.ID, insertedDocID)
+
 	postPtr, err := services.GetPostsService().GetPostByID(insertedDocID)
 	assert.Equal(t, err, nil)
 	fmt.Printf("%+v\n", postPtr)

@@ -3,99 +3,79 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
-
-func save(ctx context.Context, client *mongo.Client) (err error) {
-	type Post struct {
-		Title string `bson:"title,omitempty"`
-		Body  string `bson:"body,omitempty"`
-	}
-
-	type AAA struct {
-		AAA   string `bson:"aaa,omitempty"`
-		AAA1  string `bson:"aaa1"`
-		Posts []Post `bson:"post,omitempty"`
-	}
-
-	/*
-	   Get my collection instance
-	*/
-	collection := client.Database("blog").Collection("posts")
-
-	/*
-	   Insert documents
-	*/
-	docs := []interface{}{
-		// bson.D
-		bson.D{{"title", "World"}, {"body", "Hello World"}},
-		bson.D{{"title", "Mars"}, {"body", "Hello Mars"}},
-		bson.D{{"title", "Pluto"}, {"body", "Hello Pluto"}},
-	}
-
-	byts, err := bson.Marshal(AAA{"xx", "", []Post{{"aaa", "aaaa"}}})
-	fmt.Println(byts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	postsUnmarshalled := AAA{}
-
-	err = bson.Unmarshal(byts, &postsUnmarshalled)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("unmarshalled", postsUnmarshalled)
-	res, insertErr := collection.InsertMany(ctx, docs)
-	if insertErr != nil {
-		log.Fatal(insertErr)
-	}
-	fmt.Println(res)
-	/*
-	   Iterate a cursor and print it
-	*/
-	cur, currErr := collection.Find(ctx, bson.D{})
-
-	if currErr != nil {
-		panic(currErr)
-	}
-	defer cur.Close(ctx)
-
-	var posts []Post
-	if err = cur.All(ctx, &posts); err != nil {
-		panic(err)
-	}
-	fmt.Println(posts)
-	return
-}
 
 func main() {
 
-	/*
-	   Connect to my cluster
-	*/
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:10200"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Disconnect(ctx)
+	var uri string = "mongodb://localhost:10200"
 
-	/*
-	   List databases
-	*/
-	databases, err := client.ListDatabaseNames(ctx, bson.M{})
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri))
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	fmt.Println(databases)
-	save(ctx, client)
+	defer client.Disconnect(context.TODO())
+
+	database := client.Database("blog")
+	coll := database.Collection("myColl")
+
+	// start-session
+	wc := writeconcern.New(writeconcern.WMajority())
+	txnOptions := options.Transaction().SetWriteConcern(wc)
+
+	session, err := client.StartSession()
+	if err != nil {
+		panic(err)
+	}
+	defer session.EndSession(context.TODO())
+
+	result, err := session.WithTransaction(context.TODO(), func(ctx mongo.SessionContext) (interface{}, error) {
+		result, err := coll.InsertMany(ctx, []interface{}{
+			bson.D{{"title", "The Bluest Eye"}, {"author", "Toni Morrison"}},
+			bson.D{{"title", "Sula"}, {"author", "Toni Morrison"}},
+			bson.D{{"title", "Song of Solomon"}, {"author", "Toni Morrison"}},
+		})
+		return result, err
+	}, txnOptions)
+	// end-session
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Inserted _id values: %v\n", result)
+
+	// MANUAL TRANSACTION EXAMPLE
+	// uncomment this section to run this code
+
+	// err = mongo.WithSession(context.TODO(), session, func(ctx mongo.SessionContext) error {
+	// 	if err = session.StartTransaction(txnOptions); err != nil {
+	// 		return err
+	// 	}
+
+	// 	docs := []interface{}{
+	// 		bson.D{{"title", "The Year of Magical Thinking"}, {"author", "Joan Didion"}},
+	// 		bson.D{{"title", "Play It As It Lays"}, {"author", "Joan Didion"}},
+	// 		bson.D{{"title", "The White Album"}, {"author", "Joan Didion"}},
+	// 	}
+	// 	result, err := coll.InsertMany(ctx, docs)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	if err = session.CommitTransaction(ctx); err != nil {
+	// 		return err
+	// 	}
+
+	// 	fmt.Println(result.InsertedIDs)
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	if err := session.AbortTransaction(context.TODO()); err != nil {
+	// 		panic(err)
+	// 	}
+	// 	panic(err)
+	// }
 }

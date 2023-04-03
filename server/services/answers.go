@@ -30,6 +30,12 @@ var postService *PostService
 type PostService struct {
 }
 
+type ApprovedStatus uint64
+
+const NotApprovedOrDisapproved ApprovedStatus = 0
+const AlreadyApproved ApprovedStatus = 1
+const AlreadyDisapproved ApprovedStatus = 2
+
 func (service *PostService) NewPost(post *models.Answer) (docID primitive.ObjectID, err error) {
 	// conn := db.GetMongoConn()
 	post.Init()
@@ -71,57 +77,106 @@ func (service *PostService) DeletePostByID(oid primitive.ObjectID) (err error) {
 // 	return
 // }
 
-// func exists(filter bson.M) bool {
-// 	result := getCollection("posts").FindOne(context.TODO(), filter)
-// 	return result.Err() == nil
-// }
+func exists(filter bson.M) bool {
+	result := db.GetCollection("posts").FindOne(context.TODO(), filter)
+	return result.Err() == nil
+}
 
-// func (service *PostService) CheckIfAlreadyLiked(postOID, userID primitive.ObjectID) (alreadyLiked bool, alreadyDisLiked bool) {
-// 	filterCreator := func(position bool) bson.M {
+func (service *PostService) CheckIfAlreadyLiked(postOID, userID primitive.ObjectID) (stat ApprovedStatus) {
+	filterCreator := func(key string) bson.M {
 
-// 		return bson.M{
-// 			"_id": postOID,
-// 			"likes": bson.M{
-// 				"$elemMatch": bson.M{
-// 					"userID": bson.M{
-// 						"$eq": userID,
-// 					},
-// 					"position": bson.M{
-// 						"$eq": position,
-// 					},
-// 				},
-// 			},
-// 		}
-// 	}
-// 	return exists(filterCreator(true)), exists(filterCreator(false))
-// }
+		return bson.M{
+			"_id": postOID,
+			key: bson.M{
+				"$elemMatch": bson.M{
+					"$eq": userID,
+				},
+			},
+		}
+	}
+	approved, disapproved := exists(filterCreator("approvedUsers")), exists(filterCreator("disapprovedUsers"))
+	if (!approved) && (!disapproved) {
+		return NotApprovedOrDisapproved
+	} else if approved && (!disapproved) {
+		return AlreadyApproved
+	} else if (!approved) && disapproved {
+		return AlreadyDisapproved
+	} else {
+		panic("this post has been approved and disapproved at the same time!")
+	}
+}
+
+func (service *PostService) GetLikedStatus(postID, userID primitive.ObjectID) {}
 
 func (service *PostService) PostExists(postID primitive.ObjectID) bool {
 	res := db.GetCollection("posts").FindOne(context.TODO(), bson.M{"_id": postID})
 	return res.Err() == nil
 }
 
+// 伪三目运算符。
+func pseudoTernaryOp[T any](condition bool, valueOnTrue, valueOnFalse T) T {
+	if condition {
+		return valueOnTrue
+	} else {
+		return valueOnFalse
+	}
+}
+
 // 如果赞过了，就返回
 func (service *PostService) GiveLikeToPost(userID primitive.ObjectID, postID primitive.ObjectID) (err error) {
-	statement := bson.M{"$push": bson.M{"approvedUsers": userID}, "$inc": bson.M{"statistics.approves": 1}}
-	filter := bson.M{
-		"_id": postID,
-		"approvedUsers": bson.M{
-			"$not": bson.M{
-				"$elemMatch": bson.M{
-					"$eq": userID,
-				},
-			},
-		},
+	likedStatus := service.CheckIfAlreadyLiked(postID, userID)
+	post, err := service.GetPostByID(postID)
+	if err != nil {
+		return
 	}
+	isAlumn, err := GetAuthService().IsAlumn(userID, post.BelongsTo.ID)
+	if err != nil {
+		return
+	}
+	fmt.Printf("liked: %+v\n", likedStatus)
+	var statement bson.M
+	var filter bson.M
+	if likedStatus == AlreadyApproved {
+		err = errors.New("already approved this post")
+		return
+	} else if likedStatus == NotApprovedOrDisapproved {
+		statement = bson.M{
+			"$push": bson.M{"approvedUsers": userID},
+			"$inc": bson.M{
+				"statistics.approves":      1,
+				"statistics.alumnApproves": pseudoTernaryOp(isAlumn, 1, 0),
+			},
+		}
+		filter = bson.M{
+			"_id": postID,
+		}
+	} else {
+		statement = bson.M{
+			"$pull": bson.M{"disapprovedUsers": userID},
+			"$push": bson.M{"approvedUsers": userID},
+			"$inc": bson.M{
+				"statistics.approves":         1,
+				"statistics.disapproves":      -1,
+				"statistics.alumnApproves":    pseudoTernaryOp(isAlumn, 1, 0),
+				"statistics.alumnDisapproves": pseudoTernaryOp(isAlumn, -1, 0),
+			},
+		}
+		filter = bson.M{
+			"_id": postID,
+		}
+	}
+
 	opts := options.FindOneAndUpdate().
 		SetReturnDocument(options.After)
 
 	res := db.GetCollection("posts").FindOneAndUpdate(context.TODO(), filter, statement, opts)
 	err = res.Err()
 	if err != nil {
-		if service.PostExists(postID) {
+		// 文档不存在
+		if !service.PostExists(postID) {
 			err = errors.New(fmt.Sprintf("post %+v does not exist!", postID))
+		} else {
+			// 确实已经赞过了
 		}
 	}
 	return
