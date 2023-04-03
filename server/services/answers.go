@@ -106,6 +106,16 @@ func pseudoTernaryOp[T any](condition bool, valueOnTrue, valueOnFalse T) T {
 	}
 }
 
+func (service *AnswerService) CancelLikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+	panic("not implemented method!")
+	return models.StatusReport{}
+}
+
+func (service *AnswerService) CancelDislikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+	panic("not implemented method!")
+	return models.StatusReport{}
+}
+
 // 如果赞过了，就返回
 func (service *AnswerService) GiveLikeToAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
 	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
