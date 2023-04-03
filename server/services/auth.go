@@ -69,6 +69,7 @@ func (service *AuthService) IsAlumn(userID primitive.ObjectID, heiID primitive.O
 		},
 	}
 	res := db.GetCollection("user").FindOne(context.TODO(), filter)
+	err = res.Err()
 	isAlumn = (res.Err() == nil)
 	return
 }
@@ -79,6 +80,11 @@ func (service *AuthService) InternalAddUser(userName, password, role string, pro
 	user = models.User{Name: userName, Role: role, PasswordHash: auth.EncryptPassword(password)}
 	if processor != nil {
 		processor(&user)
+	}
+	_, err_ := service.GetUserByName(userName)
+	if err_ == nil {
+		err = errors.New("user existed!")
+		return
 	}
 	_, err = db.GetCollection("user").InsertOne(context.TODO(), &user)
 	if err != nil {

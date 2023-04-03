@@ -16,14 +16,14 @@ func GetAllUserPosts(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	posts, err := services.GetPostsService().GetAllUserPosts(oid)
+	posts, err := services.GetAnswersService().GetAllUserPosts(oid)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 	postOutlines := make([]models.PostOutline, 0)
 	for i := 0; i < len(posts); i++ {
-		postOutline, err := services.GetPostsService().PostToOutline(&posts[i])
+		postOutline, err := services.GetAnswersService().PostToOutline(&posts[i])
 		if err != nil {
 			ctx.String(http.StatusBadRequest, err.Error())
 			return

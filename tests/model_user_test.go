@@ -33,7 +33,7 @@ func testChangePublicInfo(t *testing.T) {
 }
 
 func TestUser(t *testing.T) {
-	user, err := services.GetAuthService().InternalAddUser("user1", "123456", models.RoleUnpaidUser)
+	user, err := services.GetAuthService().InternalAddUser("user1", "123456", models.RoleUnpaidUser, nil)
 	assert.Equal(t, err, nil)
 	byts, err := json.Marshal(user)
 	assert.Equal(t, err, nil)

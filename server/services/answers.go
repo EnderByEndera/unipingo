@@ -25,9 +25,9 @@ import (
 // 	"go.mongodb.org/mongo-driver/mongo/options"
 // )
 
-var postService *PostService
+var answerService *AnswerService
 
-type PostService struct {
+type AnswerService struct {
 }
 
 type ApprovedStatus uint64
@@ -36,10 +36,10 @@ const NotApprovedOrDisapproved ApprovedStatus = 0
 const AlreadyApproved ApprovedStatus = 1
 const AlreadyDisapproved ApprovedStatus = 2
 
-func (service *PostService) NewPost(post *models.Answer) (docID primitive.ObjectID, err error) {
+func (service *AnswerService) NewAnswer(answer *models.Answer) (docID primitive.ObjectID, err error) {
 	// conn := db.GetMongoConn()
-	post.Init()
-	res1, err := db.GetCollection("posts").InsertOne(context.Background(), post)
+	answer.Init()
+	res1, err := db.GetCollection("answers").InsertOne(context.Background(), answer)
 	if err != nil {
 		return
 	}
@@ -47,46 +47,30 @@ func (service *PostService) NewPost(post *models.Answer) (docID primitive.Object
 	return
 }
 
-func (service *PostService) GetPostByID(oid primitive.ObjectID) (post *models.Answer, err error) {
-	post = &models.Answer{}
+func (service *AnswerService) GetAnswerByID(oid primitive.ObjectID) (answer *models.Answer, err error) {
+	answer = &models.Answer{}
 
 	filter := bson.D{{"_id", oid}}
-	err = db.GetCollection("posts").FindOne(context.TODO(), filter).Decode(post)
+	err = db.GetCollection("answers").FindOne(context.TODO(), filter).Decode(answer)
 	return
 }
 
-func (service *PostService) DeletePostByID(oid primitive.ObjectID) (err error) {
+func (service *AnswerService) DeleteAnswerByID(oid primitive.ObjectID) (err error) {
 	filter := bson.D{{"_id", oid}}
-	_, err = db.GetCollection("posts").DeleteOne(context.TODO(), filter)
+	_, err = db.GetCollection("answers").DeleteOne(context.TODO(), filter)
 	return
 }
-
-// func (service *PostService) GetAllUserPosts(userid primitive.ObjectID) (posts []models.Answer, err error) {
-// 	posts = make([]models.Answer, 0)
-
-// 	filter := bson.D{{"userID", userid}}
-// 	cursor, err := getCollection("posts").Find(context.TODO(), filter)
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	if err = cursor.All(context.TODO(), &posts); err != nil {
-// 		panic(err)
-// 	}
-
-// 	return
-// }
 
 func exists(filter bson.M) bool {
-	result := db.GetCollection("posts").FindOne(context.TODO(), filter)
+	result := db.GetCollection("answers").FindOne(context.TODO(), filter)
 	return result.Err() == nil
 }
 
-func (service *PostService) CheckIfAlreadyLiked(postOID, userID primitive.ObjectID) (stat ApprovedStatus) {
+func (service *AnswerService) CheckIfAlreadyLiked(ansID, userID primitive.ObjectID) (stat ApprovedStatus) {
 	filterCreator := func(key string) bson.M {
 
 		return bson.M{
-			"_id": postOID,
+			"_id": ansID,
 			key: bson.M{
 				"$elemMatch": bson.M{
 					"$eq": userID,
@@ -102,14 +86,14 @@ func (service *PostService) CheckIfAlreadyLiked(postOID, userID primitive.Object
 	} else if (!approved) && disapproved {
 		return AlreadyDisapproved
 	} else {
-		panic("this post has been approved and disapproved at the same time!")
+		panic("this answer has been approved and disapproved at the same time!")
 	}
 }
 
-func (service *PostService) GetLikedStatus(postID, userID primitive.ObjectID) {}
+func (service *AnswerService) GetLikedStatus(ansID, userID primitive.ObjectID) {}
 
-func (service *PostService) PostExists(postID primitive.ObjectID) bool {
-	res := db.GetCollection("posts").FindOne(context.TODO(), bson.M{"_id": postID})
+func (service *AnswerService) AnswerExists(ansID primitive.ObjectID) bool {
+	res := db.GetCollection("answers").FindOne(context.TODO(), bson.M{"_id": ansID})
 	return res.Err() == nil
 }
 
@@ -123,22 +107,19 @@ func pseudoTernaryOp[T any](condition bool, valueOnTrue, valueOnFalse T) T {
 }
 
 // 如果赞过了，就返回
-func (service *PostService) GiveLikeToPost(userID primitive.ObjectID, postID primitive.ObjectID) (err error) {
-	likedStatus := service.CheckIfAlreadyLiked(postID, userID)
-	post, err := service.GetPostByID(postID)
+func (service *AnswerService) GiveLikeToAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
+	answer, err := service.GetAnswerByID(ansID)
 	if err != nil {
-		return
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerDoesNotExist}
 	}
-	isAlumn, err := GetAuthService().IsAlumn(userID, post.BelongsTo.ID)
-	if err != nil {
-		return
-	}
-	fmt.Printf("liked: %+v\n", likedStatus)
+	isAlumn, _ := GetAuthService().IsAlumn(userID, answer.BelongsTo.ID)
+
 	var statement bson.M
 	var filter bson.M
 	if likedStatus == AlreadyApproved {
-		err = errors.New("already approved this post")
-		return
+		err = errors.New("already approved this answer")
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerAlreadyApproved}
 	} else if likedStatus == NotApprovedOrDisapproved {
 		statement = bson.M{
 			"$push": bson.M{"approvedUsers": userID},
@@ -148,7 +129,7 @@ func (service *PostService) GiveLikeToPost(userID primitive.ObjectID, postID pri
 			},
 		}
 		filter = bson.M{
-			"_id": postID,
+			"_id": ansID,
 		}
 	} else {
 		statement = bson.M{
@@ -162,323 +143,79 @@ func (service *PostService) GiveLikeToPost(userID primitive.ObjectID, postID pri
 			},
 		}
 		filter = bson.M{
-			"_id": postID,
+			"_id": ansID,
 		}
 	}
 
 	opts := options.FindOneAndUpdate().
 		SetReturnDocument(options.After)
 
-	res := db.GetCollection("posts").FindOneAndUpdate(context.TODO(), filter, statement, opts)
+	res := db.GetCollection("answers").FindOneAndUpdate(context.TODO(), filter, statement, opts)
 	err = res.Err()
 	if err != nil {
-		// 文档不存在
-		if !service.PostExists(postID) {
-			err = errors.New(fmt.Sprintf("post %+v does not exist!", postID))
-		} else {
-			// 确实已经赞过了
-		}
+		return models.StatusReport{err, models.ApproveAnswerStatus.OperationFailed}
+	} else {
+		return models.StatusReport{err, models.ApproveAnswerStatus.ApproveAnswerSucceeded}
 	}
-	return
-
-	// like := models.Like{UserID: userID, TimeStamp: 0, Position: req.Position}
-	// alreadyLiked, alreadyDisliked := service.CheckIfAlreadyLiked(postID, userID)
-	// var statement bson.M
-	// identifier := []interface{}{}
-	// incFactory := func(likeInc, dislikeInc int) bson.M {
-	// 	return bson.M{"statistics.likes": likeInc, "statistics.dislikes": dislikeInc}
-	// }
-	// modificationFactory := func(position bool, likeInc, dislikeInc int) ([]interface{}, bson.M) {
-	// 	return []interface{}{bson.M{
-	// 			"likeItem.userID": bson.M{
-	// 				"$eq": userID,
-	// 			},
-	// 		}}, bson.M{
-	// 			"$set": bson.M{
-	// 				"likes.$[likeItem].position": position,
-	// 			},
-	// 			"$inc": incFactory(likeInc, dislikeInc)}
-	// }
-	// if !(alreadyLiked || alreadyDisliked) {
-	// 	if req.Position {
-	// 		statement = bson.M{"$push": bson.M{"likes": like}, "$inc": incFactory(1, 0)}
-	// 	} else {
-	// 		statement = bson.M{"$push": bson.M{"likes": like}, "$inc": incFactory(0, 1)}
-	// 	}
-	// } else if alreadyLiked {
-	// 	if req.Position {
-	// 		return errors.New("already liked this post")
-	// 	} else {
-	// 		identifier, statement = modificationFactory(false, -1, 1)
-	// 	}
-	// } else if alreadyDisliked {
-	// 	if !req.Position {
-	// 		return errors.New("already unliked this post")
-	// 	} else {
-	// 		identifier, statement = modificationFactory(true, 1, -1)
-	// 	}
-	// } else {
-	// 	panic("error occurred. is liked and unliked exist at the same time?")
-	// }
-	// opts := options.FindOneAndUpdate().
-	// 	SetArrayFilters(options.ArrayFilters{Filters: identifier}).
-	// 	SetReturnDocument(options.After)
-
-	// res := db.GetCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", postOID}}, statement, opts)
-	// err = res.Err()
-	return
 }
 
-// func (service *PostService) CheckIfCommentAlreadyLiked(postOID primitive.ObjectID, userID primitive.ObjectID, commentUUID string) (alreadyLiked bool, alreadyDisLiked bool) {
-// 	filterCreator := func(pos bool) bson.M {
-// 		return bson.M{
-// 			"_id": postOID,
-// 			"comments": bson.M{
-// 				"$elemMatch": bson.M{
-// 					"uuid": bson.M{
-// 						"$eq": commentUUID,
-// 					},
-// 					"likes": bson.M{
-// 						"$elemMatch": bson.M{
-// 							"userID": bson.M{
-// 								"$eq": userID,
-// 							},
-// 							"position": bson.M{"$eq": pos},
-// 						},
-// 					},
-// 				},
-// 			},
-// 		}
-// 	}
-
-// 	return exists(filterCreator(true)), exists(filterCreator(false))
-// }
-
-// func (service *PostService) GiveLikeToComment(req *models.LikeCommentRequest) (err error) {
-// 	postOID, err := primitive.ObjectIDFromHex(req.PostOID)
-// 	if err != nil {
-// 		return
-// 	}
-// 	userID, err := primitive.ObjectIDFromHex(req.UserID)
-// 	if err != nil {
-// 		return
-// 	}
-// 	like := models.Like{UserID: userID, TimeStamp: 0, Position: req.Position}
-// 	alreadyLiked, alreadyDisliked := service.CheckIfCommentAlreadyLiked(postOID, userID, req.CommentUUID)
-
-// 	var statement bson.M
-// 	identifier := []interface{}{}
-// 	pushFactory := func(likeInc, dislikeInc int) ([]interface{}, bson.M) {
-// 		identifier_ := []interface{}{
-// 			bson.M{
-// 				"commentItem.uuid": bson.M{
-// 					"$eq": req.CommentUUID,
-// 				},
-// 			},
-// 		}
-// 		statement_ := bson.M{
-// 			"$push": bson.M{"comments.$[commentItem].likes": like},
-// 			"$inc": bson.M{
-// 				"comments.$[commentItem].statistics.likes":    likeInc,
-// 				"comments.$[commentItem].statistics.dislikes": dislikeInc,
-// 			},
-// 		}
-// 		return identifier_, statement_
-// 	}
-
-// 	modificationFactory := func(position bool, likeInc, dislikeInc int) ([]interface{}, bson.M) {
-// 		identifier_ := []interface{}{
-// 			bson.M{"commentItem.uuid": bson.M{
-// 				"$eq": req.CommentUUID,
-// 			}},
-// 			bson.M{"likeItem.userID": bson.M{
-// 				"$eq": userID,
-// 			}},
-// 		}
-// 		statement_ := bson.M{
-// 			"$set": bson.M{
-// 				"comments.$[commentItem].likes.$[likeItem].position": position,
-// 			},
-// 			"$inc": bson.M{
-// 				"comments.$[commentItem].statistics.dislikes": likeInc,
-// 				"comments.$[commentItem].statistics.likes":    dislikeInc,
-// 			},
-// 		}
-// 		return identifier_, statement_
-// 	}
-// 	if !(alreadyLiked || alreadyDisliked) {
-// 		if req.Position {
-// 			identifier, statement = pushFactory(1, 0)
-// 		} else {
-// 			identifier, statement = pushFactory(0, 1)
-// 		}
-// 	} else if alreadyLiked {
-// 		if req.Position {
-// 			return errors.New("already liked this post")
-// 		} else {
-// 			identifier, statement = modificationFactory(false, -1, 1)
-// 		}
-// 	} else if alreadyDisliked {
-// 		if !req.Position {
-// 			return errors.New("already disliked this post")
-// 		} else {
-// 			identifier, statement = modificationFactory(true, 1, -1)
-// 		}
-// 	} else {
-// 		panic("error occurred. is liked and unliked exist at the same time?")
-// 	}
-// 	opts := options.FindOneAndUpdate().
-// 		SetArrayFilters(options.ArrayFilters{Filters: identifier}).
-// 		SetReturnDocument(options.After)
-
-// 	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", postOID}}, statement, opts)
-// 	err = res.Err()
-// 	return
-// }
-
-// func (service *PostService) CheckIfReplyAlreadyLiked(postOID primitive.ObjectID, userID primitive.ObjectID, commentUUID, replyUUID string) (alreadyLiked bool, alreadyDisLiked bool) {
-
-// 	createFilter := func(position bool) bson.M {
-// 		v := bson.M{
-// 			"_id": postOID,
-// 			"comments": bson.M{
-// 				"$elemMatch": bson.M{
-// 					"uuid": bson.M{"$eq": commentUUID},
-// 					"replies": bson.M{
-// 						"$elemMatch": bson.M{
-// 							"uuid": bson.M{"$eq": replyUUID},
-// 							"likes": bson.M{
-// 								"$elemMatch": bson.M{
-// 									"userID":   bson.M{"$eq": userID},
-// 									"position": bson.M{"$eq": position},
-// 								},
-// 							},
-// 						},
-// 					},
-// 				},
-// 			},
-// 		}
-// 		return v
-// 	}
-// 	return exists(createFilter(true)), exists(createFilter(false))
-// }
-
-// func (service *PostService) GiveLikeToReply(req *models.LikeReplyRequest) (err error) {
-// 	userID, err := primitive.ObjectIDFromHex(req.UserID)
-// 	if err != nil {
-// 		return
-// 	}
-// 	postID, err := primitive.ObjectIDFromHex(req.PostOID)
-// 	if err != nil {
-// 		return
-// 	}
-// 	like := models.Like{UserID: userID, TimeStamp: 0, Position: req.Position}
-// 	alreadyLiked, alreadyDisliked := service.CheckIfReplyAlreadyLiked(postID, userID, req.CommentUUID, req.ReplyUUID)
-// 	var statement bson.M
-// 	identifier := []interface{}{}
-// 	pushFactory := func(likeInc, dislikeInc int) ([]interface{}, bson.M) {
-// 		identifier_ := []interface{}{
-// 			bson.M{
-// 				"commentItem.uuid": bson.M{
-// 					"$eq": req.CommentUUID,
-// 				},
-// 			},
-// 			bson.M{
-// 				"replyItem.uuid": bson.M{
-// 					"$eq": req.ReplyUUID,
-// 				},
-// 			},
-// 		}
-// 		statement_ := bson.M{
-// 			"$push": bson.M{
-// 				"comments.$[commentItem].replies.$[replyItem].likes": like,
-// 			},
-// 			"$inc": bson.M{
-// 				"comments.$[commentItem].replies.$[replyItem].statistics.likes":    likeInc,
-// 				"comments.$[commentItem].replies.$[replyItem].statistics.dislikes": dislikeInc,
-// 			},
-// 		}
-// 		return identifier_, statement_
-// 	}
-
-// 	modificationFactory := func(position bool, likeInc, dislikeInc int) ([]interface{}, bson.M) {
-// 		identifier_ := []interface{}{
-// 			bson.M{
-// 				"commentItem.uuid": bson.M{
-// 					"$eq": req.CommentUUID,
-// 				},
-// 			},
-// 			bson.M{
-// 				"replyItem.uuid": bson.M{
-// 					"$eq": req.ReplyUUID,
-// 				},
-// 			},
-// 			bson.M{
-// 				"likeItem.userID": bson.M{
-// 					"$eq": userID,
-// 				},
-// 			},
-// 		}
-// 		statement_ := bson.M{
-// 			"$set": bson.M{
-// 				"comments.$[commentItem].replies.$[replyItem].likes.$[likeItem].position": false,
-// 			},
-// 			"$inc": bson.M{
-// 				"comments.$[commentItem].replies.$[replyItem].statistics.dislikes": 1,
-// 				"comments.$[commentItem].replies.$[replyItem].statistics.likes":    -1,
-// 			},
-// 		}
-// 		return identifier_, statement_
-// 	}
-// 	if !(alreadyLiked || alreadyDisliked) {
-// 		if req.Position {
-// 			identifier, statement = pushFactory(1, 0)
-// 		} else {
-// 			identifier, statement = pushFactory(0, 1)
-// 		}
-// 	} else if alreadyLiked {
-// 		if req.Position {
-// 			return errors.New("already liked this post")
-// 		} else {
-// 			identifier, statement = modificationFactory(false, -1, 1)
-// 		}
-// 	} else if alreadyDisliked {
-// 		if !req.Position {
-// 			return errors.New("already disliked this post")
-// 		} else {
-// 			identifier, statement = modificationFactory(true, 1, -1)
-// 		}
-// 	} else {
-// 		panic("error occurred. is liked and unliked exist at the same time?")
-// 	}
-// 	opts := options.FindOneAndUpdate().
-// 		SetArrayFilters(options.ArrayFilters{Filters: identifier}).
-// 		SetReturnDocument(options.After)
-
-// 	res := getCollection("posts").FindOneAndUpdate(context.TODO(), bson.D{{"_id", postID}}, statement, opts)
-// 	err = res.Err()
-// 	return
-// }
-
-// func (service *PostService) PostToOutline(post *models.Answer) (outline models.PostOutline, err error) {
-// 	user, err := authService.GetUserByID(post.UserID)
-// 	if err != nil {
-// 		return
-// 	}
-// 	outline = models.PostOutline{
-// 		PostOID:    post.DocumentID.Hex(),
-// 		TimeStamp:  post.TimeStamp,
-// 		User:       user.ToPublicInfo(),
-// 		Title:      post.Title,
-// 		Content:    post.Content,
-// 		Statistics: post.Statistics,
-// 	}
-// 	return outline, nil
-// }
-
-func GetPostsService() *PostService {
-	if postService == nil {
-		postService = &PostService{}
+// 点踩
+func (service *AnswerService) GiveDislikeToAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
+	answer, err := service.GetAnswerByID(ansID)
+	if err != nil {
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerDoesNotExist}
 	}
-	return postService
+	isAlumn, err := GetAuthService().IsAlumn(userID, answer.BelongsTo.ID)
+
+	fmt.Printf("liked: %+v\n", likedStatus)
+	var statement bson.M
+	var filter bson.M
+	if likedStatus == AlreadyDisapproved {
+		err = errors.New("already disapproved this answer")
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerAlreadyDisapproved}
+	} else if likedStatus == NotApprovedOrDisapproved {
+		statement = bson.M{
+			"$push": bson.M{"disapprovedUsers": userID},
+			"$inc": bson.M{
+				"statistics.disapproves":      1,
+				"statistics.alumnDisapproves": pseudoTernaryOp(isAlumn, 1, 0),
+			},
+		}
+		filter = bson.M{
+			"_id": ansID,
+		}
+	} else {
+		statement = bson.M{
+			"$pull": bson.M{"approvedUsers": userID},
+			"$push": bson.M{"disapprovedUsers": userID},
+			"$inc": bson.M{
+				"statistics.approves":         -1,
+				"statistics.disapproves":      1,
+				"statistics.alumnApproves":    pseudoTernaryOp(isAlumn, -1, 0),
+				"statistics.alumnDisapproves": pseudoTernaryOp(isAlumn, 1, 0),
+			},
+		}
+		filter = bson.M{
+			"_id": ansID,
+		}
+	}
+
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+
+	res := db.GetCollection("answers").FindOneAndUpdate(context.TODO(), filter, statement, opts)
+	err = res.Err()
+	if err != nil {
+		return models.StatusReport{err, models.ApproveAnswerStatus.OperationFailed}
+	} else {
+		return models.StatusReport{err, models.ApproveAnswerStatus.DisapproveAnswerSucceeded}
+	}
+}
+
+func GetAnswersService() *AnswerService {
+	if answerService == nil {
+		answerService = &AnswerService{}
+	}
+	return answerService
 }
