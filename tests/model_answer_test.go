@@ -84,6 +84,16 @@ func TGiveLike(t *testing.T, userID primitive.ObjectID, answerID primitive.Objec
 	assert.Equal(t, ans.Statistics.AlumnApproves, 1)
 	assert.Equal(t, ans.Statistics.AlumnDisapproves, 0)
 
+	// 取消赞
+	stat = services.GetAnswersService().CancelLikeInAnswer(userID, answerID)
+	assert.Equal(t, stat.Status, models.ApproveAnswerStatus.CancelApproveSucceeded)
+	assert.Equal(t, stat.Error, nil)
+	ans = TGetAnswer(t, answerID)
+	fmt.Printf("%+v\n", ans)
+	assert.Equal(t, ans.Statistics.Approves, 0)
+	assert.Equal(t, ans.Statistics.AlumnApproves, 0)
+	assert.Equal(t, len(ans.ApprovedUsers), 0)
+
 	// 点个踩
 	stat = services.GetAnswersService().GiveDislikeToAnswer(userID, answerID)
 	err = stat.Error

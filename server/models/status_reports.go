@@ -11,6 +11,8 @@ var ApproveAnswerStatus = struct {
 	AnswerDoesNotExist        ProgramStatusType
 	AnswerAlreadyApproved     ProgramStatusType
 	AnswerAlreadyDisapproved  ProgramStatusType
+	AnswerNotApproved         ProgramStatusType
+	AnswerNotDisapproved      ProgramStatusType
 	OperationFailed           ProgramStatusType
 }{
 	ApproveAnswerSucceeded:    "approve_answer_succeeded",    // 赞同成功
@@ -19,8 +21,10 @@ var ApproveAnswerStatus = struct {
 	CancelDisapproveSucceeded: "cancel_disapprove_succeeded", // 取消踩成功
 	AnswerDoesNotExist:        "answer_does_not_exist",       // 回答不存在
 	AnswerAlreadyApproved:     "answer_already_approved",     // 回答已经赞过
-	AnswerAlreadyDisapproved:  "answer_already_disapproved",  // 回答已经踩过
-	OperationFailed:           "operation_failed",            // 内部错误，操作失败
+	AnswerNotApproved:         "answer_not_approved",
+	AnswerNotDisapproved:      "answer_not_disapproved",
+	AnswerAlreadyDisapproved:  "answer_already_disapproved", // 回答已经踩过
+	OperationFailed:           "operation_failed",           // 内部错误，操作失败
 }
 
 type StatusReport struct {

@@ -106,14 +106,92 @@ func pseudoTernaryOp[T any](condition bool, valueOnTrue, valueOnFalse T) T {
 	}
 }
 
+// 取消赞
+// 如果未点赞也未点踩，返回“未点赞”错误
+// 如果已点赞，则尝试取消赞操作。成功则返回“取消赞成功”,失败则返回数据库操作失败。
+// 如果已经点踩，返回“回答已经踩过”
 func (service *AnswerService) CancelLikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
-	panic("not implemented method!")
-	return models.StatusReport{}
+	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
+	answer, err := service.GetAnswerByID(ansID)
+	if err != nil {
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerDoesNotExist}
+	}
+	isAlumn, _ := GetAuthService().IsAlumn(userID, answer.BelongsTo.ID)
+	var statement bson.M
+	var filter bson.M
+	if likedStatus == AlreadyApproved {
+		statement = bson.M{
+			"$pull": bson.M{"approvedUsers": userID},
+			"$inc": bson.M{
+				"statistics.approves":      -1,
+				"statistics.alumnApproves": pseudoTernaryOp(isAlumn, -1, 0),
+			},
+		}
+		filter = bson.M{
+			"_id": ansID,
+		}
+	} else if likedStatus == NotApprovedOrDisapproved {
+		err = errors.New("answer not approved!")
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerNotApproved}
+	} else {
+		err = errors.New("already disapproved this answer, cannot cancel approval!")
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerAlreadyDisapproved}
+	}
+
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+
+	res := db.GetCollection("answers").FindOneAndUpdate(context.TODO(), filter, statement, opts)
+	err = res.Err()
+	if err != nil {
+		return models.StatusReport{err, models.ApproveAnswerStatus.OperationFailed}
+	} else {
+		return models.StatusReport{err, models.ApproveAnswerStatus.CancelApproveSucceeded}
+	}
 }
 
+// 取消踩
+// 如果未点赞也未点踩，返回“未点踩”错误
+// 如果已点踩，则尝试取消踩操作。成功则返回“取消踩成功”,失败则返回数据库操作失败。
+// 如果已经点赞，返回“回答已经赞过”
 func (service *AnswerService) CancelDislikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
-	panic("not implemented method!")
-	return models.StatusReport{}
+	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
+	answer, err := service.GetAnswerByID(ansID)
+	if err != nil {
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerDoesNotExist}
+	}
+	isAlumn, _ := GetAuthService().IsAlumn(userID, answer.BelongsTo.ID)
+	var statement bson.M
+	var filter bson.M
+	if likedStatus == AlreadyDisapproved {
+		statement = bson.M{
+			"$pull": bson.M{"approvedUsers": userID},
+			"$inc": bson.M{
+				"statistics.disapproves":      -1,
+				"statistics.alumnDisapproves": pseudoTernaryOp(isAlumn, -1, 0),
+			},
+		}
+		filter = bson.M{
+			"_id": ansID,
+		}
+	} else if likedStatus == NotApprovedOrDisapproved {
+		err = errors.New("answer not disapproved!")
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerNotDisapproved}
+	} else {
+		err = errors.New("already approved this answer, cannot cancel disapproval!")
+		return models.StatusReport{err, models.ApproveAnswerStatus.AnswerAlreadyApproved}
+	}
+
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+
+	res := db.GetCollection("answers").FindOneAndUpdate(context.TODO(), filter, statement, opts)
+	err = res.Err()
+	if err != nil {
+		return models.StatusReport{err, models.ApproveAnswerStatus.OperationFailed}
+	} else {
+		return models.StatusReport{err, models.ApproveAnswerStatus.CancelDisapproveSucceeded}
+	}
 }
 
 // 如果赞过了，就返回
