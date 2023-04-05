@@ -103,6 +103,15 @@ func (service *AuthService) InternalRemoveUser(userName string) (err error) {
 	return
 }
 
+func (service *AuthService) InternalRemoveUserByID(userID primitive.ObjectID) (err error) {
+	filter := bson.M{"_id": userID}
+	_, err = db.GetCollection("user").DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return
+	}
+	return
+}
+
 func (service *AuthService) Login(userName, password string) (user models.User, status int, err error) {
 	user, err = service.GetUserByName(userName)
 

@@ -6,28 +6,32 @@ import (
 	"fmt"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
+	"melodie-site/server/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// import (
-// 	"context"
-// 	"errors"
-// 	"fmt"
-// 	"melodie-site/server/db"
-// 	"melodie-site/server/models"
-
-// 	"go.mongodb.org/mongo-driver/bson"
-// 	"go.mongodb.org/mongo-driver/bson/primitive"
-// 	"go.mongodb.org/mongo-driver/mongo"
-// 	"go.mongodb.org/mongo-driver/mongo/options"
-// )
-
 var answerService *AnswerService
 
 type AnswerService struct {
+	userAndAnswerMutex *utils.KeyedMutex
+}
+
+type IDInterface struct {
+	UserID   primitive.ObjectID
+	AnswerID primitive.ObjectID
+}
+
+func (ansService *AnswerService) LockUserAndAnswer(userID, ansID primitive.ObjectID) {
+	key := IDInterface{UserID: userID, AnswerID: ansID}
+	ansService.userAndAnswerMutex.Lock(key)
+}
+
+func (ansService *AnswerService) UnlockUserAndAnswer(userID, ansID primitive.ObjectID) {
+	key := IDInterface{UserID: userID, AnswerID: ansID}
+	ansService.userAndAnswerMutex.Unlock(key)
 }
 
 type ApprovedStatus uint64
@@ -110,7 +114,7 @@ func pseudoTernaryOp[T any](condition bool, valueOnTrue, valueOnFalse T) T {
 // 如果未点赞也未点踩，返回“未点赞”错误
 // 如果已点赞，则尝试取消赞操作。成功则返回“取消赞成功”,失败则返回数据库操作失败。
 // 如果已经点踩，返回“回答已经踩过”
-func (service *AnswerService) CancelLikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+func (service *AnswerService) cancelLikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
 	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
 	answer, err := service.GetAnswerByID(ansID)
 	if err != nil {
@@ -154,7 +158,7 @@ func (service *AnswerService) CancelLikeInAnswer(userID primitive.ObjectID, ansI
 // 如果未点赞也未点踩，返回“未点踩”错误
 // 如果已点踩，则尝试取消踩操作。成功则返回“取消踩成功”,失败则返回数据库操作失败。
 // 如果已经点赞，返回“回答已经赞过”
-func (service *AnswerService) CancelDislikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+func (service *AnswerService) cancelDislikeInAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
 	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
 	answer, err := service.GetAnswerByID(ansID)
 	if err != nil {
@@ -195,7 +199,7 @@ func (service *AnswerService) CancelDislikeInAnswer(userID primitive.ObjectID, a
 }
 
 // 如果赞过了，就返回
-func (service *AnswerService) GiveLikeToAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+func (service *AnswerService) giveLikeToAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
 	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
 	answer, err := service.GetAnswerByID(ansID)
 	if err != nil {
@@ -248,7 +252,7 @@ func (service *AnswerService) GiveLikeToAnswer(userID primitive.ObjectID, ansID 
 }
 
 // 点踩
-func (service *AnswerService) GiveDislikeToAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
+func (service *AnswerService) giveDislikeToAnswer(userID primitive.ObjectID, ansID primitive.ObjectID) models.StatusReport {
 	likedStatus := service.CheckIfAlreadyLiked(ansID, userID)
 	answer, err := service.GetAnswerByID(ansID)
 	if err != nil {
@@ -301,9 +305,33 @@ func (service *AnswerService) GiveDislikeToAnswer(userID primitive.ObjectID, ans
 	}
 }
 
+func (ansService *AnswerService) ApproveAnswer(userID, ansID primitive.ObjectID) models.StatusReport {
+	ansService.LockUserAndAnswer(userID, ansID)
+	defer ansService.UnlockUserAndAnswer(userID, ansID)
+	return ansService.giveLikeToAnswer(userID, ansID)
+}
+
+func (ansService *AnswerService) DisApproveAnswer(userID, ansID primitive.ObjectID) models.StatusReport {
+	ansService.LockUserAndAnswer(userID, ansID)
+	defer ansService.UnlockUserAndAnswer(userID, ansID)
+	return ansService.giveDislikeToAnswer(userID, ansID)
+}
+
+func (ansService *AnswerService) CancelApprovalOfAnswer(userID, ansID primitive.ObjectID) models.StatusReport {
+	ansService.LockUserAndAnswer(userID, ansID)
+	defer ansService.UnlockUserAndAnswer(userID, ansID)
+	return ansService.cancelLikeInAnswer(userID, ansID)
+}
+
+func (ansService *AnswerService) CancelDisApprovalOfAnswer(userID, ansID primitive.ObjectID) models.StatusReport {
+	ansService.LockUserAndAnswer(userID, ansID)
+	defer ansService.UnlockUserAndAnswer(userID, ansID)
+	return ansService.cancelDislikeInAnswer(userID, ansID)
+}
+
 func GetAnswersService() *AnswerService {
 	if answerService == nil {
-		answerService = &AnswerService{}
+		answerService = &AnswerService{userAndAnswerMutex: &utils.KeyedMutex{}}
 	}
 	return answerService
 }

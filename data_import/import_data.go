@@ -82,7 +82,7 @@ func ImportHEIs() {
 	for i, majorProps := range heis {
 		// majorProps
 		if majorProps["code"] == nil {
-			province = strings.Split(majorProps["序号"].(string), "（")[0]
+			province = strings.Split(majorProps["序号"].(string), "(")[0]
 			continue
 		}
 		hei := models.HEI{
@@ -123,4 +123,5 @@ func ImportHEIs() {
 func main() {
 	ImportMajors()
 	ImportHEIs()
+	fmt.Println("数据库初始化成功！")
 }

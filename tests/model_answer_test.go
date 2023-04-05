@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,13 +15,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var userName = "user-" + uuid.NewString()
-
 func TCreateTempUser(t *testing.T) (user *models.User, hei *models.HEI) {
 	hei, err := services.GetHEIService().GetHEIByName("北京航空航天大学")
 	fmt.Printf("%+v\n", hei)
 	assert.Equal(t, err, nil)
-
+	userName := "user-" + uuid.NewString()
 	user_, err := services.GetAuthService().InternalAddUser(userName, "123456", models.RoleUnpaidUser, func(u *models.User) {
 		u.EducationalBackground = make([]models.EduBGItem, 0)
 		u.EducationalBackground = append(u.EducationalBackground, models.EduBGItem{HEIID: hei.ID, HEIName: hei.Name})
@@ -65,7 +64,7 @@ func TNewAnswer(t *testing.T, user models.User, hei models.HEI) (answer *models.
 
 func TGiveLike(t *testing.T, userID primitive.ObjectID, answerID primitive.ObjectID) (err error) {
 	// 模拟点赞
-	err = services.GetAnswersService().GiveLikeToAnswer(userID, answerID).Error
+	err = services.GetAnswersService().ApproveAnswer(userID, answerID).Error
 	ans := TGetAnswer(t, answerID)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, ans.Statistics.Approves, 1)
@@ -74,7 +73,7 @@ func TGiveLike(t *testing.T, userID primitive.ObjectID, answerID primitive.Objec
 	assert.Equal(t, ans.Statistics.AlumnDisapproves, 0)
 
 	// 重复点赞，假设点赞不成功。
-	stat := services.GetAnswersService().GiveLikeToAnswer(userID, answerID)
+	stat := services.GetAnswersService().ApproveAnswer(userID, answerID)
 	err = stat.Error
 	assert.Equal(t, stat.Status, models.ApproveAnswerStatus.AnswerAlreadyApproved)
 	assert.NotEqual(t, err, nil)
@@ -85,7 +84,7 @@ func TGiveLike(t *testing.T, userID primitive.ObjectID, answerID primitive.Objec
 	assert.Equal(t, ans.Statistics.AlumnDisapproves, 0)
 
 	// 取消赞
-	stat = services.GetAnswersService().CancelLikeInAnswer(userID, answerID)
+	stat = services.GetAnswersService().CancelApprovalOfAnswer(userID, answerID)
 	assert.Equal(t, stat.Status, models.ApproveAnswerStatus.CancelApproveSucceeded)
 	assert.Equal(t, stat.Error, nil)
 	ans = TGetAnswer(t, answerID)
@@ -95,7 +94,7 @@ func TGiveLike(t *testing.T, userID primitive.ObjectID, answerID primitive.Objec
 	assert.Equal(t, len(ans.ApprovedUsers), 0)
 
 	// 点个踩
-	stat = services.GetAnswersService().GiveDislikeToAnswer(userID, answerID)
+	stat = services.GetAnswersService().DisApproveAnswer(userID, answerID)
 	err = stat.Error
 	assert.Equal(t, stat.Status, models.ApproveAnswerStatus.DisapproveAnswerSucceeded)
 	assert.Equal(t, err, nil)
@@ -106,7 +105,7 @@ func TGiveLike(t *testing.T, userID primitive.ObjectID, answerID primitive.Objec
 	assert.Equal(t, ans.Statistics.AlumnDisapproves, 1)
 
 	// 再点个赞。
-	stat = services.GetAnswersService().GiveLikeToAnswer(userID, answerID)
+	stat = services.GetAnswersService().ApproveAnswer(userID, answerID)
 	err = stat.Error
 	assert.Equal(t, stat.Status, models.ApproveAnswerStatus.ApproveAnswerSucceeded)
 	assert.Equal(t, err, nil)
@@ -118,18 +117,65 @@ func TGiveLike(t *testing.T, userID primitive.ObjectID, answerID primitive.Objec
 	return
 }
 
-func TReleaseSource(t *testing.T, answer *models.Answer) {
+func TReleaseSource(t *testing.T, answer *models.Answer, user *models.User) {
 	answerPtr, err := services.GetAnswersService().GetAnswerByID(answer.ID)
 	assert.Equal(t, err, nil)
 	fmt.Printf("%+v\n", answerPtr)
 
 	services.GetAnswersService().DeleteAnswerByID(answer.ID)
 
-	err = services.GetAuthService().InternalRemoveUser(userName)
+	err = services.GetAuthService().InternalRemoveUser(user.Name)
 	assert.Equal(t, err, nil)
 
 	_, err = services.GetAnswersService().GetAnswerByID(answer.ID)
 	assert.NotEqual(t, err, nil)
+}
+
+// 测试并发写入与加锁。
+func TParallel(t *testing.T, answerID primitive.ObjectID, heiID primitive.ObjectID) {
+
+	const UserNum = 20
+	const chLength = UserNum * 10
+	users := make([]*models.User, 0)
+	ch := make(chan *models.User, chLength)
+	mtx := sync.Mutex{}
+	var counter = 0
+
+	for i := 0; i < 4; i++ {
+		go func() {
+			for {
+				u := <-ch
+				// for i:=0;
+				services.GetAnswersService().ApproveAnswer(u.ID, answerID)
+				mtx.Lock()
+				counter += 1
+				mtx.Unlock()
+			}
+		}()
+	}
+
+	fmt.Println("Put!")
+	for i := 0; i < UserNum; i++ {
+		user, _ := TCreateTempUser(t)
+		users = append(users, user)
+		// fmt.Println("put", i)
+		for j := 0; j < 10; j++ {
+			ch <- user
+		}
+	}
+	for {
+		if counter == chLength {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	for i := 0; i < UserNum; i++ {
+		err := services.GetAuthService().InternalRemoveUserByID(users[i].ID)
+		assert.Equal(t, err, nil)
+	}
+	ans := TGetAnswer(t, answerID)
+	fmt.Println(ans.Statistics)
 }
 
 func TestModelAnswers(t *testing.T) {
@@ -143,5 +189,6 @@ func TestModelAnswers(t *testing.T) {
 	// 模拟点赞操作
 	TGiveLike(t, user.ID, answer.ID)
 
-	defer TReleaseSource(t, answer)
+	TParallel(t, answer.ID, hei.ID)
+	defer TReleaseSource(t, answer, user)
 }
