@@ -8,19 +8,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type HEIService struct{}
+type MajorService struct{}
 
-var heiService *HEIService
+var majorService *MajorService
 
-func GetHEIService() *HEIService {
-	if heiService == nil {
-		heiService = &HEIService{}
+func GetMajorService() *MajorService {
+	if majorService == nil {
+		majorService = &MajorService{}
 	}
-	return heiService
+	return majorService
 }
 
-func (service *HEIService) GetHEIByName(heiName string) (hei *models.HEI, err error) {
-	filter := bson.M{"name": heiName}
-	err = db.GetCollection("heis").FindOne(context.TODO(), filter).Decode(&hei)
+func (service *MajorService) GetMajorByName(majorName string) (major *models.Major, err error) {
+	filter := bson.M{"name": majorName}
+	err = db.GetCollection("majors").FindOne(context.TODO(), filter).Decode(&major)
 	return
 }

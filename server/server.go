@@ -74,11 +74,11 @@ func Cors() gin.HandlerFunc {
 func initServer() {
 	_, err := services.GetAuthService().GetUserByName("admin")
 	if err != nil {
-		services.GetAuthService().InternalAddUser("admin", "123456", models.RoleAdmin)
+		services.GetAuthService().InternalAddUser("admin", "123456", models.RoleAdmin, nil)
 	}
 	_, err = services.GetAuthService().GetUserByName("demo-unpaid-user")
 	if err != nil {
-		services.GetAuthService().InternalAddUser("demo-unpaid-user", "123456", models.RoleUnpaidUser)
+		services.GetAuthService().InternalAddUser("demo-unpaid-user", "123456", models.RoleUnpaidUser, nil)
 	}
 }
 
@@ -103,10 +103,11 @@ func RunServer() {
 		authRouter.POST("/setStuIDAuthStatus", authMiddleware(), routers.SetStudentIDAuthStatus) // 获取所有未完成的学生身份验证
 		authRouter.GET("/userPublicInfo", authMiddleware(), routers.GetPublicInfo)
 	}
-	// postsRouter := r.Group("/api/posts")
-	// {
-	// 	postsRouter.GET("/all", routers.GetAllUserPosts)
-	// }
+	heisRouter := r.Group("/api/heis")
+	{
+		heisRouter.GET("/getHEIByName", routers.GetHEIByName)
+	}
+
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
 
 }

@@ -31,6 +31,6 @@ type HEI struct {
 	Location    Location           `bson:"location" json:"location"` // 地区
 	Mode        HEIMode            `bson:"mode" json:"mode"`         // 办学模式
 	Policies    []string           `bson:"policies" json:"policies"`
-	Titles      []string           `bson:"titles" json:"titles"` // 学校称号
+	Tags        []string           `bson:"tags" json:"tags"` // 学校称号
 	Level       HEILevel           `bson:"level" json:"level"`
 }
