@@ -106,6 +106,7 @@ func RunServer() {
 	heisRouter := r.Group("/api/heis")
 	{
 		heisRouter.GET("/getHEIByName", routers.GetHEIByName)
+		heisRouter.GET("/filterHEI", routers.FilterHEI)
 	}
 
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
