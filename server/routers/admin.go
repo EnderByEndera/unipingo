@@ -67,7 +67,7 @@ func GetStuIDAuthProc(c *gin.Context) {
 func GetUnhandledProcs(c *gin.Context) {
 	claims, err := utils.GetClaims(c)
 	if claims.Role != models.RoleAdmin {
-		c.AbortWithError(http.StatusBadRequest, errors.New("cannot get procs without admin role!"))
+		c.AbortWithError(http.StatusForbidden, errors.New("您不是管理员，无法查看此信息"))
 		return
 	}
 	if err != nil {

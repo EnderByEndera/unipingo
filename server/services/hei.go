@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type HEIService struct{}
@@ -38,7 +39,7 @@ func (service *HEIService) GetHEIByName(heiName string) (hei *models.HEI, err er
 // 通过标签进行过滤
 // 若要provincialLocation和tags不做限制，则传入"";
 // 若要level和mode不做限制，则传入<0值
-func (service *HEIService) FilterHEI(provincialLocation string, level models.HEILevel, mode models.HEIMode, policy string) (heis []*models.HEI, err error) {
+func (service *HEIService) FilterHEI(provincialLocation string, level models.HEILevel, mode models.HEIMode, policy string, page int64) (heis []*models.HEI, err error) {
 	filter := bson.M{}
 	if provincialLocation != "" {
 		filter["location.provincial"] = provincialLocation
@@ -56,7 +57,8 @@ func (service *HEIService) FilterHEI(provincialLocation string, level models.HEI
 			},
 		}
 	}
-	res, err := db.GetCollection("heis").Find(context.TODO(), filter)
+	opts := options.Find().SetLimit(20).SetSkip(20 * page)
+	res, err := db.GetCollection("heis").Find(context.TODO(), filter, opts)
 	if err != nil {
 		return
 	}

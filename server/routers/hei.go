@@ -3,11 +3,12 @@ package routers
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 // 通过名称获取高等教育机构
@@ -67,7 +68,15 @@ func FilterHEI(c *gin.Context) {
 	//参数policy
 	policy := c.Query("policy")
 
-	heis, err := services.GetHEIService().FilterHEI(provincialLocation, levels, modes, policy)
+	//分页参数，当前是多少页。
+	pageStr := c.Query("page")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
+		return
+	}
+
+	heis, err := services.GetHEIService().FilterHEI(provincialLocation, levels, modes, policy, int64(page))
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, makeResponse(false, errors.New(fmt.Sprintf("数据库查询错误")), nil))

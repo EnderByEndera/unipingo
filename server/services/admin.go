@@ -26,10 +26,12 @@ func GetAdminService() *AdminService {
 	return adminService
 }
 
-func (adminService *AdminService) GetStuIDAuthProc(userID primitive.ObjectID) (authProc models.StudentIdentityAuthentication, err error) {
+func (adminService *AdminService) GetStuIDAuthProc(userID primitive.ObjectID) (authProc *models.StudentIdentityAuthentication, err error) {
 	filter := bson.M{"userID": userID}
-	authProc = models.StudentIdentityAuthentication{}
-	err = db.GetCollection("auth").FindOne(context.TODO(), filter).Decode(&authProc)
+	authProc = &models.StudentIdentityAuthentication{}
+	res := db.GetCollection("auth").FindOne(context.TODO(), filter)
+	err = res.Err()
+	res.Decode(authProc)
 
 	return
 }
@@ -41,7 +43,7 @@ func (adminService *AdminService) NewStuIDAuthProc(auth *models.StudentIdentityA
 		filter := bson.M{"userID": auth.UserID}
 		fmt.Println(err, auth)
 		err = db.GetCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": auth}).Err()
-
+		fmt.Println(err, auth)
 		code = http.StatusConflict // 返回资源冲突409。
 		return
 	}

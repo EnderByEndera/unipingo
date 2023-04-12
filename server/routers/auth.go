@@ -128,8 +128,8 @@ func LoginWechat(c *gin.Context) {
 	}
 	user, err := services.GetAuthService().GetUserByWechatOpenID(wechatLoginResponse.OpenID)
 	if err != nil {
-
 		err := services.GetAuthService().CreateWechatUser(&models.User{
+			Name: "微信用户",
 			WechatInfo: models.WechatInfo{
 				OpenID:  wechatLoginResponse.OpenID,
 				UnionID: wechatLoginResponse.UnionID,
@@ -230,6 +230,67 @@ func GetPublicInfo(ctx *gin.Context) {
 	} else {
 		err = errors.New("userID string was empty")
 		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+}
+
+// 获取用户的完整信息
+func GetUser(ctx *gin.Context) {
+	userIDString := ctx.Query("userID")
+	if userIDString == "" {
+		claims, err := utils.GetClaims(ctx)
+		if err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+		userIDString = claims.UserID
+	}
+	var userID primitive.ObjectID
+	var user *models.User
+	var err error
+	if userIDString != "" {
+		userID, err = primitive.ObjectIDFromHex(userIDString)
+		if err != nil {
+			ctx.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		user, err = services.GetAuthService().GetUserByID(userID)
+		if err != nil {
+			ctx.String(http.StatusBadRequest, err.Error())
+			return
+		} else {
+			ctx.JSON(http.StatusOK, user)
+			return
+		}
+	} else {
+		err = errors.New("userID string was empty")
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+}
+
+// 更新用户的昵称、头像等无需认证的信息
+func UpdateUserPublicInfo(c *gin.Context) {
+	dataBytes, err := c.GetRawData()
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	reqStruct := &models.UserPublicInfoUpdateRequest{}
+	err = json.Unmarshal(dataBytes, reqStruct)
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	fmt.Printf("%+v\n", reqStruct)
+
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	err = services.GetAuthService().UpdateUserPublicInfo(userID, reqStruct)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 

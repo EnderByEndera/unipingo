@@ -24,7 +24,7 @@ type Location struct {
 
 // Higher education institute
 type HEI struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Code        string             `bson:"code" json:"code"`
 	Name        string             `bson:"name" json:"name"`
 	Description string             `bson:"description" json:"description"`

@@ -25,11 +25,35 @@ func testChangePublicInfo(t *testing.T) {
 	newAvatar := "1145.jpg"
 	err = services.GetAuthService().UpdateUserPublicInfo(user.ID, &models.UserPublicInfoUpdateRequest{
 		Avatar: newAvatar,
+		Name:   "user1",
 	})
 	assert.Equal(t, err, nil)
 	user, err = services.GetAuthService().GetUserByName("user1")
-	// assert.Equal(t, user.Name, newName)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, user.Avatar, newAvatar)
+}
+
+func testCollection(t *testing.T) {
+	user, err := services.GetAuthService().GetUserByName("user1")
+	assert.Equal(t, err, nil)
+
+	hei, err := services.GetHEIService().GetHEIByName("北京航空航天大学")
+	assert.Equal(t, err, nil)
+
+	major, err := services.GetMajorService().GetMajorByName("能源与动力工程")
+	assert.Equal(t, err, nil)
+	fmt.Println(major)
+
+	err = services.GetAuthService().AddHEIOrMajorToCollection(user.ID, hei.ID, models.CollectionItemHEI)
+	assert.Equal(t, err, nil)
+
+	err = services.GetAuthService().AddHEIOrMajorToCollection(user.ID, major.ID, models.CollectionItemMajor)
+	assert.Equal(t, err, nil)
+
+	user, err = services.GetAuthService().GetUserByName("user1")
+	assert.Equal(t, err, nil)
+	fmt.Printf("%+v\n", user.Collection)
+	// assert.Equal()
 }
 
 func TestUser(t *testing.T) {
@@ -44,6 +68,7 @@ func TestUser(t *testing.T) {
 	fmt.Println("unmarshalled", user1)
 	testPassword(t)
 	testChangePublicInfo(t)
+	testCollection(t)
 	err = services.GetAuthService().InternalRemoveUser("user1")
 	fmt.Println(err)
 	_, err = services.GetAuthService().GetUserByName("user1")

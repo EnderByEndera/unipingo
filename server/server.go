@@ -102,6 +102,8 @@ func RunServer() {
 		authRouter.GET("/stuIDAuth", authMiddleware(), routers.GetStuIDAuthProc)                 // 获取所有未完成的学生身份验证
 		authRouter.POST("/setStuIDAuthStatus", authMiddleware(), routers.SetStudentIDAuthStatus) // 获取所有未完成的学生身份验证
 		authRouter.GET("/userPublicInfo", authMiddleware(), routers.GetPublicInfo)
+		authRouter.GET("/userInfo", authMiddleware(), routers.GetUser)
+		authRouter.POST("/updateUserPublicInfo", authMiddleware(), routers.UpdateUserPublicInfo)
 	}
 	heisRouter := r.Group("/api/heis")
 	{

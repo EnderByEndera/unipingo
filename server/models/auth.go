@@ -1,6 +1,7 @@
 package models
 
 import (
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -8,6 +9,13 @@ const (
 	RoleAdmin      string = "ROLE_ADMIN"
 	RoleUnpaidUser string = "ROLE_UNPAID_USER"
 	RolePaidUser   string = "ROLE_PAID_USER"
+)
+
+type CollectionType string
+
+const (
+	CollectionItemMajor CollectionType = "COLLECTION_ITEM_MAJOR"
+	CollectionItemHEI   CollectionType = "COLLECTION_ITEM_HEI"
 )
 
 type WechatInfo struct {
@@ -47,6 +55,32 @@ type CollectionItem struct {
 	Text string             `json:"text" bson:"text"`
 }
 
+type AnswerInCollection struct {
+	BelongsTo EntityWithName     `json:"answers" bson:"answers"`
+	ID        primitive.ObjectID `json:"id" bson:"id"`
+}
+
+// 用户收藏的所有事项的结构体
+type Collections struct {
+	Majors  []EntityWithName     `json:"majors" bson:"majors"`
+	HEIs    []EntityWithName     `json:"heis" bson:"heis"`
+	Answers []AnswerInCollection `json:"answers" bson:"answers"`
+}
+
+func (c *Collections) MarshalBSON() ([]byte, error) {
+	if c.Answers == nil {
+		c.Answers = make([]AnswerInCollection, 0)
+	}
+	if c.HEIs == nil {
+		c.HEIs = make([]EntityWithName, 0)
+	}
+	if c.Majors == nil {
+		c.Majors = make([]EntityWithName, 0)
+	}
+	type _t Collections
+	return bson.Marshal((*_t)(c))
+}
+
 type User struct {
 	ID                    primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Role                  string             `json:"role" bson:"role"`
@@ -58,7 +92,7 @@ type User struct {
 	Gender                string             `json:"gender" bson:"gender"`
 	Birthday              uint64             `json:"birthday" bson:"birthday"`
 	EducationalBackground []EduBGItem        `json:"educationalBackground" bson:"educationalBackground"`
-	Collection            []CollectionItem   `json:"collection" bson:"collection"`
+	Collection            Collections        `json:"collection" bson:"collection"`
 	Type                  string             `json:"type" bson:"type"`
 	Membership            string             `json:"membership" bson:"membership"`
 	// PublicMeta   UserPublicMeta     `json:"publicMeta" bson:"publicMeta"`
@@ -74,6 +108,14 @@ type UserPublicInfo struct {
 	FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
 }
 
+func (u *User) MarshalBSON() ([]byte, error) {
+	if u.EducationalBackground == nil {
+		u.EducationalBackground = make([]EduBGItem, 0)
+	}
+	type _u User
+	return bson.Marshal((*_u)(u))
+}
+
 func (user *User) ToPublicInfo() UserPublicInfo {
 	return UserPublicInfo{
 		OID:    user.ID.Hex(),
@@ -86,8 +128,9 @@ func (user *User) ToPublicInfo() UserPublicInfo {
 }
 
 type UserPublicInfoUpdateRequest struct {
-	Avatar           string               `json:"avatar"`
-	FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta"`
+	Avatar string `json:"avatar" bson:"avatar"`
+	Name   string `json:"name" bson:"name"`
+	// FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta"`
 }
 
 type LoginResponse struct {
