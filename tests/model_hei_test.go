@@ -9,7 +9,7 @@ import (
 )
 
 func TestFilterHEI(t *testing.T) {
-	heis, err := services.GetHEIService().FilterHEI("北京", models.VocationalHEI, models.PublicHEI, "双高计划")
+	heis, err := services.GetHEIService().FilterHEI("北京", models.VocationalHEI, models.PublicHEI, "双高计划", 0)
 	fmt.Println(heis, err)
 	fmt.Println(utils.ToIndentedJSON(heis))
 }
