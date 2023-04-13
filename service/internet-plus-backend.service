@@ -1,0 +1,14 @@
+[Unit]
+Description=internet-plus-backend.service
+After=rc-local.service
+
+[Service]
+Type=simple
+User=hzy
+WorkingDirectory=/home/hzy/service_docker/internet-plus-backend
+//启动服务的命令（此处写你的push_msg_swoole的实际安装目录）
+ExecStart=./melodie-site
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

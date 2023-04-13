@@ -9,7 +9,28 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+func GetHEI(c *gin.Context) {
+	idStr := c.Query("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, makeResponse(false, errors.New("学校id不能为空"), nil))
+		return
+	}
+	id, err := primitive.ObjectIDFromHex(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, makeResponse(false, fmt.Errorf("无效学校id %s", idStr), nil))
+		return
+	}
+	hei, err := services.GetHEIService().GetHEI(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, makeResponse(false, fmt.Errorf("未找到id为'%s'的学校", idStr), nil))
+	} else {
+		c.JSON(http.StatusOK, makeResponse(true, nil, hei))
+	}
+
+}
 
 // 通过名称获取高等教育机构
 // GET

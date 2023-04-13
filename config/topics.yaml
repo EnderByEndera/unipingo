@@ -1,0 +1,5 @@
+- name: 住宿条件
+  description: 请在此写出有关学校住宿条件的描述。
+  questions:
+  - title: 学校宿舍条件如何？
+    description: 请在此写出有关学校住宿条件的描述。

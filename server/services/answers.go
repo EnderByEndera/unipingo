@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"melodie-site/server/config"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
 	"melodie-site/server/utils"
@@ -327,6 +328,10 @@ func (ansService *AnswerService) CancelDisApprovalOfAnswer(userID, ansID primiti
 	ansService.LockUserAndAnswer(userID, ansID)
 	defer ansService.UnlockUserAndAnswer(userID, ansID)
 	return ansService.cancelDislikeInAnswer(userID, ansID)
+}
+
+func (ansService *AnswerService) GetAllTopics() config.Topics {
+	return config.GetTopics()
 }
 
 func GetAnswersService() *AnswerService {
