@@ -177,7 +177,7 @@ func TParallel(t *testing.T, answerID primitive.ObjectID, heiID primitive.Object
 	ans := TGetAnswer(t, answerID)
 	fmt.Println(ans.Statistics)
 }
-
+//测试的函数名称要以Test打头
 func TestModelAnswers(t *testing.T) {
 
 	// 创建一名临时用户，属于某个学校
