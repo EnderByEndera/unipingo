@@ -215,7 +215,7 @@ func ImportHEIs() {
 }
 
 func main() {
-	// ImportMajors()
+	ImportMajors()
 	ImportHEIs()
 	fmt.Println("数据库初始化成功！")
 }

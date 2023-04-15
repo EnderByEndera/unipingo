@@ -116,5 +116,11 @@ func RunServer() {
 	{
 		answersRouter.GET("/topics", routers.GetTopics)
 	}
+	majorRouter := r.Group("/api/majors")
+	{
+		majorRouter.GET("/getMajorByName", routers.GetMajorByName)
+		majorRouter.GET("/filterMajor", routers.FilterMajor)
+	}
+
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
 }
