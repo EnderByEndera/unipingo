@@ -15,6 +15,7 @@ import (
 
 type BucketNames struct {
 	Files        string
+	StaticFiles  string
 	PrivateFiles string
 }
 
@@ -34,9 +35,10 @@ func GetOSSHandler() *OSSHandler {
 }
 
 func (handler *OSSHandler) Init() {
-	handler.Buckets = BucketNames{Files: "files", PrivateFiles: "private-files"}
+	handler.Buckets = BucketNames{Files: "files", PrivateFiles: "private-files", StaticFiles: "static-files"}
 	handler.EnsureBucket(handler.Buckets.Files)
 	handler.EnsureBucket(handler.Buckets.PrivateFiles)
+	handler.EnsureBucket(handler.Buckets.StaticFiles)
 }
 
 // 确保bucket存在
