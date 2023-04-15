@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 )
 
 func GetFileFromOSS(objectName string) (saveAsFile string, err error) {
@@ -21,6 +23,18 @@ func GetFileFromOSS(objectName string) (saveAsFile string, err error) {
 		f.Close()
 	}()
 	err = utils.GetOSSHandler().GetFileAndSave(objectName, saveAsFile)
+	return
+}
+
+func GetStaticFileFromOSS(objectName string) (saveAsFile string, err error) {
+	f, err := ioutil.TempFile(os.TempDir(), uuid.NewString())
+	saveAsFile = f.Name()
+	defer func() {
+		f.Close()
+	}()
+	handler := utils.GetOSSHandler()
+	err = handler.Client.FGetObject(context.Background(), handler.Buckets.StaticFiles, objectName,
+		saveAsFile, minio.GetObjectOptions{})
 	return
 }
 

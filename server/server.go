@@ -90,6 +90,7 @@ func RunServer() {
 	fileRouter := r.Group("/api/file")
 	{
 		fileRouter.GET("/getfile/:file", routers.SendFile)
+		fileRouter.GET("/getStaticFile/:file", routers.SendStaticFile)
 		fileRouter.POST("/upload", routers.UploadAvatar)
 		fileRouter.POST("/uploadStaticFile", routers.UploadStaticFile)
 	}
