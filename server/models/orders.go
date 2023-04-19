@@ -1,8 +1,9 @@
 package models
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type OrderStatus string
@@ -16,13 +17,15 @@ const (
 
 type ProductStatus string
 
+// 评论：ProductType、ProductStatus等字符串中的内容，用英文更好，和变量名一致即可。
 const (
 	ProductLaunch  ProductStatus = "产品上线"
 	ProductOffline ProductStatus = "产品下线"
 )
 
 type ProductType string
-//产品的类型和订单的价格value要绑定，但目前还没有确定
+
+// 产品的类型和订单的价格value要绑定，但目前还没有确定
 const (
 	MemberSubscription   ProductType = "会员订阅"
 	ModuleContentPayment ProductType = "模块内容付费"
@@ -60,6 +63,7 @@ type SKUInfo struct {
 
 // 订单和用户选择的产品服务绑定，先init产品（还没有写这个函数），再使用产品来init订单
 func (product *Product) InitOrder() (order *Order) {
+	order = &Order{}
 	order.SKUItem.SKUID = product.ID
 	order.SKUItem.SKUType = product.Type
 	order.SKUItem.SKUExpiration = product.Expiration
