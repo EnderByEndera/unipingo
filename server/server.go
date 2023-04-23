@@ -120,6 +120,7 @@ func RunServer() {
 		answersRouter.GET("/topics", routers.GetTopics)
 		answersRouter.POST("/newAnswer", authMiddleware(), routers.NewAnswer)
 		answersRouter.GET("/getAnswersRelated", authMiddleware(), routers.GetAnswersRelatedToHEIOrMajor)
+		answersRouter.POST("/approveOrDisapprove", authMiddleware(), routers.ApproveOrDisapproveAnswer)
 	}
 	majorRouter := r.Group("/api/majors")
 	{

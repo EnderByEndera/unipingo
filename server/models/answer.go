@@ -51,7 +51,7 @@ const (
 type Answer struct {
 	CreateTime       uint64               `bson:"createTime" json:"createTime"`
 	UpdateTime       uint64               `bson:"updateTime" json:"updateTime"`
-	ID               primitive.ObjectID   `bson:"_id,omitempty" json:"_oid"`
+	ID               primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
 	UserID           primitive.ObjectID   `bson:"userID" json:"userID"`
 	Category         AnswerCategory       `bson:"category" json:"category"`   // 属于学校或者专业
 	BelongsTo        EntityWithName       `bson:"belongsTo" json:"belongsTo"` // 属于什么学校或者专业
@@ -69,6 +69,11 @@ type NewAnswerRequest struct {
 	Question string             `json:"question"`
 	Content  string             `json:"content"`
 	EntityID primitive.ObjectID `json:"entityID"` // 学校或者专业的ID
+}
+
+type ApproveOrDisapproveAnswerRequest struct {
+	AnsID   primitive.ObjectID `json:"ansID"`
+	Approve bool               `json:"approve"`
 }
 
 func (ans *Answer) Init() {
