@@ -44,8 +44,20 @@ func testCollection(t *testing.T) {
 	assert.Equal(t, err, nil)
 	fmt.Println(major)
 
+	ret, err := services.GetAuthService().IsHEIOrMajorInCollection(user.ID, hei.ID, models.CollectionItemHEI)
+	assert.Equal(t, ret, false)
+
 	err = services.GetAuthService().AddHEIOrMajorToCollection(user.ID, hei.ID, models.CollectionItemHEI)
 	assert.Equal(t, err, nil)
+
+	ret, err = services.GetAuthService().IsHEIOrMajorInCollection(user.ID, hei.ID, models.CollectionItemHEI)
+	assert.Equal(t, ret, true)
+
+	err = services.GetAuthService().RemoveHEIOrMajorFromCollection(user.ID, hei.ID, models.CollectionItemHEI)
+	assert.Equal(t, err, nil)
+
+	ret, err = services.GetAuthService().IsHEIOrMajorInCollection(user.ID, hei.ID, models.CollectionItemHEI)
+	assert.Equal(t, ret, false)
 
 	err = services.GetAuthService().AddHEIOrMajorToCollection(user.ID, major.ID, models.CollectionItemMajor)
 	assert.Equal(t, err, nil)

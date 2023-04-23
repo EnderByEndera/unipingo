@@ -112,10 +112,14 @@ func RunServer() {
 		heisRouter.GET("/getHEIByName", routers.GetHEIByName)
 		heisRouter.GET("/getHEI", routers.GetHEI)
 		heisRouter.GET("/filterHEI", routers.FilterHEI)
+		heisRouter.POST("/addHEIToCollection", authMiddleware(), routers.AddHEIToCollection)
+		heisRouter.POST("/removeHEIFromCollection", authMiddleware(), routers.RemoveHEIFromCollection)
 	}
 	answersRouter := r.Group("/api/answers")
 	{
 		answersRouter.GET("/topics", routers.GetTopics)
+		answersRouter.POST("/newAnswer", authMiddleware(), routers.NewAnswer)
+		answersRouter.GET("/getAnswersRelated", authMiddleware(), routers.GetAnswersRelatedToHEIOrMajor)
 	}
 	majorRouter := r.Group("/api/majors")
 	{

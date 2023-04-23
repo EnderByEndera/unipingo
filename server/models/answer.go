@@ -41,14 +41,19 @@ type AnswerStats struct {
 	Favorites        int `bson:"favorites" json:"favorites"`
 }
 
-type AnswerCategory uint
+type AnswerCategory string
+
+const (
+	AnswerAboutHEI   = "HEI"
+	AnswerAboutMajor = "Major"
+)
 
 type Answer struct {
 	CreateTime       uint64               `bson:"createTime" json:"createTime"`
 	UpdateTime       uint64               `bson:"updateTime" json:"updateTime"`
 	ID               primitive.ObjectID   `bson:"_id,omitempty" json:"_oid"`
 	UserID           primitive.ObjectID   `bson:"userID" json:"userID"`
-	Category         AnswerCategory       `bson:"category" json:"category"`
+	Category         AnswerCategory       `bson:"category" json:"category"`   // 属于学校或者专业
 	BelongsTo        EntityWithName       `bson:"belongsTo" json:"belongsTo"` // 属于什么学校或者专业
 	Question         string               `bson:"question" json:"question"`
 	Statistics       AnswerStats          `bson:"statistics" json:"statistics"`
@@ -57,6 +62,13 @@ type Answer struct {
 	FavoritedUsers   []primitive.ObjectID `bson:"favoritedUsers" json:"favoritedUsers"`     // 添加到收藏的用户
 	Title            string               `bson:"title" json:"title"`
 	Content          string               `bson:"content" json:"content"`
+}
+
+type NewAnswerRequest struct {
+	Category AnswerCategory     `json:"category"`
+	Question string             `json:"question"`
+	Content  string             `json:"content"`
+	EntityID primitive.ObjectID `json:"entityID"` // 学校或者专业的ID
 }
 
 func (ans *Answer) Init() {

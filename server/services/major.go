@@ -48,3 +48,12 @@ func (service *MajorService) FilterMajor(category string) (majors []*models.Majo
 	err = res.All(context.TODO(), &majors)
 	return
 }
+
+func (service *MajorService) GetMajorName(majorID primitive.ObjectID) (name string, err error) {
+	major, err := service.GetMajor(majorID)
+	if err != nil {
+		return
+	}
+	name = major.Name
+	return
+}

@@ -1,6 +1,6 @@
 import_database:
 	cd data_import && go run import_data.go
-start_dev_server:
+dev:
 	sudo systemctl stop internet-plus-backend.service
 	go run main.go
 update_service:

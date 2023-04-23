@@ -1,10 +1,12 @@
 package routers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
+	"melodie-site/server/utils"
 	"net/http"
 	"strconv"
 
@@ -104,4 +106,70 @@ func FilterHEI(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, makeResponse(true, nil, heis))
 	}
+}
+
+func AddHEIToCollection(c *gin.Context) {
+	dataBytes, err := c.GetRawData()
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	reqStruct := &models.EntityWithName{}
+	err = json.Unmarshal(dataBytes, reqStruct)
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	fmt.Printf("%+v\n", reqStruct)
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
+		return
+	}
+	if ok, _ := services.GetAuthService().IsHEIOrMajorInCollection(userID, reqStruct.ID, models.CollectionItemHEI); ok {
+		c.JSON(http.StatusConflict, makeResponse(false, errors.New("已经收藏过"), nil))
+		return
+	}
+	err = services.GetAuthService().AddHEIOrMajorToCollection(
+		userID,
+		reqStruct.ID,
+		models.CollectionItemHEI,
+	)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
+		return
+	}
+	c.JSON(http.StatusOK, makeResponse(true, nil, "添加成功"))
+
+}
+
+func RemoveHEIFromCollection(c *gin.Context) {
+	dataBytes, err := c.GetRawData()
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	reqStruct := &models.EntityWithName{}
+	err = json.Unmarshal(dataBytes, reqStruct)
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
+	fmt.Printf("%+v\n", reqStruct)
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
+		return
+	}
+	if ok, _ := services.GetAuthService().IsHEIOrMajorInCollection(userID, reqStruct.ID, models.CollectionItemHEI); !ok {
+		c.JSON(http.StatusNotFound, makeResponse(false, errors.New("未被收藏，无法取消赞"), nil))
+		return
+	}
+	err = services.GetAuthService().RemoveHEIOrMajorFromCollection(
+		userID,
+		reqStruct.ID,
+		models.CollectionItemHEI,
+	)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
+		return
+	}
+	c.JSON(http.StatusOK, makeResponse(true, nil, "取消收藏成功"))
+
 }

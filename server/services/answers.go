@@ -52,6 +52,18 @@ func (service *AnswerService) NewAnswer(answer *models.Answer) (docID primitive.
 	return
 }
 
+func (service *AnswerService) GetAnswersRelatedToHEIOrMajor(entityID primitive.ObjectID, category models.AnswerCategory) (answers []*models.Answer, err error) {
+
+	filter := bson.M{"belongsTo.id": entityID, "category": category}
+	res, err := db.GetCollection("answers").Find(context.TODO(), filter)
+	if err != nil {
+		return
+	}
+	err = res.All(context.TODO(), &answers)
+	return
+
+}
+
 func (service *AnswerService) GetAnswerByID(oid primitive.ObjectID) (answer *models.Answer, err error) {
 	answer = &models.Answer{}
 

@@ -205,30 +205,80 @@ func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, scho
 	return
 }
 
+func (service *AuthService) IsHEIOrMajorInCollection(userID primitive.ObjectID, itemID primitive.ObjectID, collectionType models.CollectionType) (ret bool, err error) {
+	var attrs string
+	if collectionType == models.CollectionItemHEI {
+		attrs = "collection.heis"
+	} else if collectionType == models.CollectionItemMajor {
+		attrs = "collection.majors"
+	} else {
+		err = fmt.Errorf("invalid collection type %s", collectionType)
+		return
+	}
+	statement := bson.M{
+		"_id": userID,
+		attrs: bson.M{
+			"$elemMatch": bson.M{
+				"id": bson.M{
+					"$eq": itemID,
+				},
+			}},
+	}
+	if err != nil {
+		return
+	}
+	res := db.GetCollection("user").FindOne(context.TODO(), statement)
+	ret = res.Err() == nil
+	return
+}
+
+func (service *AuthService) RemoveHEIOrMajorFromCollection(userID primitive.ObjectID, itemID primitive.ObjectID, collectionType models.CollectionType) (err error) {
+	var attrs string
+	if collectionType == models.CollectionItemHEI {
+		attrs = "collection.heis"
+	} else if collectionType == models.CollectionItemMajor {
+		attrs = "collection.majors"
+	} else {
+		err = fmt.Errorf("invalid collection type %s", collectionType)
+		return
+	}
+	statement := bson.M{
+
+		"$pull": bson.M{
+			attrs: bson.M{
+				"id": bson.M{
+					"$eq": itemID,
+				},
+			},
+		},
+	}
+	if err != nil {
+		return
+	}
+	res := db.GetCollection("user").FindOneAndUpdate(
+		context.TODO(),
+		bson.M{"_id": userID},
+		statement)
+	err = res.Err()
+	return
+}
+
 // 向用户收藏添加学校或者专业
 func (service *AuthService) AddHEIOrMajorToCollection(userID primitive.ObjectID, itemID primitive.ObjectID, collectionType models.CollectionType) (err error) {
 	var attrs string
 	var name string
 	if collectionType == models.CollectionItemHEI {
 		attrs = "collection.heis"
-		var hei *models.HEI
-		hei, err = heiService.GetHEI(itemID)
-		if err != nil {
-			log.Println("Err occurred when adding to collection, hei not exist")
-			return
-		}
-		name = hei.Name
+		name, err = GetHEIService().GetHEIName(itemID)
 	} else if collectionType == models.CollectionItemMajor {
 		attrs = "collection.majors"
-		var major *models.Major
-		major, err = GetMajorService().GetMajor(itemID)
-		if err != nil {
-			log.Println("Err occurred when adding to collection, hei not exist")
-			return
-		}
-		name = major.Name
+		name, err = GetMajorService().GetMajorName(itemID)
 	} else {
 		err = fmt.Errorf("invalid collection type %s", collectionType)
+		return
+	}
+	if err != nil {
+		log.Println("Err occurred when adding to collection, hei not exist")
 		return
 	}
 

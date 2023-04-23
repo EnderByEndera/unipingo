@@ -65,3 +65,12 @@ func (service *HEIService) FilterHEI(provincialLocation string, level models.HEI
 	err = res.All(context.TODO(), &heis)
 	return
 }
+
+func (service *HEIService) GetHEIName(majorID primitive.ObjectID) (name string, err error) {
+	hei, err := service.GetHEI(majorID)
+	if err != nil {
+		return
+	}
+	name = hei.Name
+	return
+}
