@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	LIKE            uint8 = 0
-	DISLIKE         uint8 = 1
-	ADD_TO_FAVORITE uint8 = 2
+	LIKE            uint8 = 1
+	DISLIKE         uint8 = 2
+	ADD_TO_FAVORITE uint8 = 3
 
 	TYPE_ARTICLE uint8 = 0
 	TYPE_COMMENT uint8 = 1
@@ -71,6 +71,13 @@ type NewAnswerRequest struct {
 	EntityID primitive.ObjectID `json:"entityID"` // 学校或者专业的ID
 }
 
+type AnswersResponse struct {
+	Answers     []*Answer                    `json:"answers"`
+	Approved    map[primitive.ObjectID]uint8 `json:"approved"`
+	Disapproved map[primitive.ObjectID]uint8 `json:"disapproved"`
+	Favorited   map[primitive.ObjectID]uint8 `json:"favorited"`
+}
+
 type ApproveOrDisapproveAnswerRequest struct {
 	AnsID   primitive.ObjectID `json:"ansID"`
 	Approve bool               `json:"approve"`
@@ -84,4 +91,10 @@ func (ans *Answer) Init() {
 
 func (content *Answer) ToIndentedJSON() string {
 	return utils.ToIndentedJSON(content)
+}
+
+func (ansResp *AnswersResponse) Init() {
+	ansResp.Approved = make(map[primitive.ObjectID]uint8)
+	ansResp.Disapproved = make(map[primitive.ObjectID]uint8)
+	ansResp.Favorited = make(map[primitive.ObjectID]uint8)
 }

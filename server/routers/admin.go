@@ -3,6 +3,7 @@ package routers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
 	"melodie-site/server/utils"
@@ -29,6 +30,7 @@ func NewStuIDAuthProc(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
+	fmt.Printf("%+v\n", req)
 	auth, err := req.ToAuthStruct(claims.UserID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
@@ -39,8 +41,8 @@ func NewStuIDAuthProc(c *gin.Context) {
 		c.AbortWithError(code, err)
 		return
 	}
-	services.GetAuthService().UpdateUserSchoolInfo(auth.UserID,
-		&models.SchoolInfo{Name: req.SchoolName, Status: models.StudentIdentityPhotoUploaded})
+	// services.GetAuthService().UpdateUserSchoolInfo(auth.UserID,
+	// 	&models.SchoolInfo{Name: req.SchoolName, Status: models.StudentIdentityPhotoUploaded})
 	c.String(http.StatusOK, "auth stream succeeded!")
 }
 

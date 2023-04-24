@@ -11,6 +11,17 @@ const (
 	RolePaidUser   string = "ROLE_PAID_USER"
 )
 
+type EducationalStageType string
+
+// 注意，学位和学段都用以下变量
+const (
+	DegreeJunior   EducationalStageType = "JUNIOR_COLLEGE"
+	DegreeBachelor EducationalStageType = "BACHELOR"
+	DegreeMaster   EducationalStageType = "MASTER"
+	DegreeDoctor   EducationalStageType = "DOCTOR"
+	DegreePost     EducationalStageType = "POST"
+)
+
 type CollectionType string
 
 const (
@@ -41,12 +52,13 @@ type UserFreeToModifyMeta struct {
 }
 
 type EduBGItem struct {
-	MajorID        primitive.ObjectID `json:"majorID" bson:"majorID"`
-	MajorName      string             `json:"majorName" bson:"majorName"`
-	HEIID          primitive.ObjectID `json:"heiID" bson:"heiID"`
-	HEIName        string             `json:"heiName" bson:"heiName"`
-	EnrollmentTime uint64             `json:"enrollmentTime" bson:"enrollmentTime"`
-	GraduationTime uint64             `json:"graduationTime" bson:"graduationTime"`
+	MajorID        primitive.ObjectID   `json:"majorID" bson:"majorID"`
+	MajorName      string               `json:"majorName" bson:"majorName"`
+	HEIID          primitive.ObjectID   `json:"heiID" bson:"heiID"`
+	HEIName        string               `json:"heiName" bson:"heiName"`
+	Stage          EducationalStageType `json:"stage" bson:"stage"`
+	EnrollmentTime uint64               `json:"enrollmentTime" bson:"enrollmentTime"`
+	GraduationTime uint64               `json:"graduationTime" bson:"graduationTime"`
 }
 
 type CollectionItem struct {

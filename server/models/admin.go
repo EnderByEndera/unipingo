@@ -24,13 +24,18 @@ type StudentIdentityAuthenticationPhotographs struct {
 type StudentIdentityAuthentication struct {
 	UserID      primitive.ObjectID                       `json:"userID" bson:"userID"`
 	SchoolName  string                                   `json:"schoolName" bson:"schoolName"`
+	MajorName   string                                   `json:"majorName" bson:"majorName"`
+	Stage       EducationalStageType                     `json:"stage" bson:"stage"`
 	Status      int                                      `json:"status" bson:"status"`
 	Photographs StudentIdentityAuthenticationPhotographs `json:"photos" bson:"photos"`
 	Suggestion  string                                   `json:"suggestion" bson:"suggestion"`
+	// EDUBG       EduBGItem                                `json:"eduBG" bson:"eduBG"`
 }
 
 type NewStudentIdentityAuthenticationRequest struct {
 	SchoolName  string                                   `json:"schoolName"`
+	MajorName   string                                   `json:"majorName"`
+	Stage       EducationalStageType                     `json:"stage"`
 	Photographs StudentIdentityAuthenticationPhotographs `json:"photos"`
 }
 
@@ -51,6 +56,8 @@ func (req *NewStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) 
 		Status:      StudentIdentityPhotoUploaded,
 		Suggestion:  "",
 		SchoolName:  req.SchoolName,
+		MajorName:   req.MajorName,
+		Stage:       req.Stage,
 	}
 	return
 }

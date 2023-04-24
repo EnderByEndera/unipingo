@@ -78,15 +78,33 @@ func GetAnswersRelatedToHEIOrMajor(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, makeResponse(false, errors.New("entityID解码失败"), nil))
 		return
 	}
+	userID, err := utils.GetUserID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, makeResponse(false, errors.New("entityID解码失败"), nil))
+		c.JSON(http.StatusBadRequest, makeResponse(false, errors.New("userID解码失败"), nil))
 		return
 	}
-	major, err := services.GetAnswersService().GetAnswersRelatedToHEIOrMajor(entityID, models.AnswerCategory(category), question)
+	answers, err := services.GetAnswersService().GetAnswersRelatedToHEIOrMajor(entityID, models.AnswerCategory(category), question)
+	ansResp := &models.AnswersResponse{Answers: answers}
+	ansResp.Init()
+	// ansResp.Approved[]
+	// for _, ans := range answers {
+	// 	ans.ApprovedUsers
+	// }
+	utils.ForEach(answers, func(i int, ans *models.Answer) {
+		if utils.InArr(ans.ApprovedUsers, userID) {
+			ansResp.Approved[ans.ID] = 1
+		}
+		if utils.InArr(ans.DisapprovedUsers, userID) {
+			ansResp.Disapproved[ans.ID] = 1
+		}
+		if utils.InArr(ans.FavoritedUsers, userID) {
+			ansResp.Favorited[ans.ID] = 1
+		}
+	})
 	if err != nil {
 		c.JSON(http.StatusNotFound, makeResponse(false, err, nil))
 	} else {
-		c.JSON(http.StatusOK, makeResponse(true, nil, major))
+		c.JSON(http.StatusOK, makeResponse(true, nil, ansResp))
 	}
 }
 

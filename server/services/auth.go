@@ -193,8 +193,19 @@ func (service *AuthService) UpdateUserPublicInfo(userID primitive.ObjectID, req 
 
 // PublicInfo是公开的，更新时只要有token即可，无需进行校验。
 // 所以是所有PublicInfo一起更新的。
-func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, schoolInfo *models.SchoolInfo) (err error) {
-	statement := bson.M{"$set": bson.M{"publicMeta.school": schoolInfo}}
+func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, schoolInfo *models.EduBGItem) (err error) {
+	user, err := GetAuthService().GetUserByID(userID)
+	if err != nil {
+		return
+	}
+	for _, v := range user.EducationalBackground {
+		if v.HEIID == schoolInfo.HEIID && v.MajorID == schoolInfo.MajorID {
+			err = errors.New("已有此段教育经历！")
+			return
+		}
+	}
+	user.EducationalBackground = append(user.EducationalBackground, *schoolInfo)
+	statement := bson.M{"$set": bson.M{"educationalBackground": user.EducationalBackground}}
 	opts := options.FindOneAndUpdate().
 		SetReturnDocument(options.After)
 	if err != nil {

@@ -81,10 +81,27 @@ func (adminService *AdminService) UpdateStuIDAuthStatus(req *models.ModifyStuIDA
 		filter := bson.M{"userID": userID}
 		fmt.Println(req)
 		err = db.GetCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": bson.M{"status": req.Status, "suggestion": req.Suggestion}}).Err()
-
-		err = GetAuthService().UpdateUserSchoolInfo(userID, &models.SchoolInfo{
-			Name:   proc.SchoolName,
-			Status: req.Status,
+		if err != nil {
+			return
+		}
+		var hei *models.HEI
+		var major *models.Major
+		hei, err = GetHEIService().GetHEIByName(proc.SchoolName)
+		if err != nil {
+			return
+		}
+		major, err = GetMajorService().GetMajorByName(proc.MajorName)
+		if err != nil {
+			return
+		}
+		err = GetAuthService().UpdateUserSchoolInfo(userID, &models.EduBGItem{
+			HEIName:   hei.Name,
+			HEIID:     hei.ID,
+			MajorID:   major.ID,
+			MajorName: major.Name,
+			Stage:     proc.Stage,
+			// Name:   proc.SchoolName,
+			// Status: req.Status,
 		})
 		if err != nil {
 			return
