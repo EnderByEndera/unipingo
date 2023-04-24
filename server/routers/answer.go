@@ -126,15 +126,34 @@ func ApproveOrDisapproveAnswer(c *gin.Context) {
 		return
 	}
 	var ret models.StatusReport
-	if reqStruct.Approve {
+	var approved, disapproved bool
+	switch reqStruct.Action {
+	case models.ApproveAnswer:
 		ret = services.GetAnswersService().ApproveAnswer(userID, reqStruct.AnsID)
-	} else {
+		approved, disapproved = true, false
+		break
+	case models.DisApproveAnswer:
 		ret = services.GetAnswersService().DisApproveAnswer(userID, reqStruct.AnsID)
+		approved, disapproved = false, true
+		break
+	case models.CancelApprove:
+		ret = services.GetAnswersService().CancelApprovalOfAnswer(userID, reqStruct.AnsID)
+		approved, disapproved = false, false
+		break
+	case models.CancelDisApprove:
+		ret = services.GetAnswersService().CancelDisApprovalOfAnswer(userID, reqStruct.AnsID)
+		approved, disapproved = false, false
+		break
+	}
+	answer, err := services.GetAnswersService().GetAnswerByID(reqStruct.AnsID)
+	if err != nil {
+		c.AbortWithError(http.StatusNotFound, err)
+		return
 	}
 	if ret.Error != nil {
 		c.JSON(http.StatusBadRequest, makeResponse(ret.Error == nil, ret.Error, ret))
 	} else {
-		c.JSON(http.StatusOK, makeResponse(ret.Error == nil, ret.Error, ret))
+		c.JSON(http.StatusOK, makeResponse(ret.Error == nil, ret.Error, map[string]interface{}{"approved": approved, "disapproved": disapproved, "statistics": answer.Statistics}))
 	}
 
 	return

@@ -182,7 +182,7 @@ func (service *AnswerService) cancelDislikeInAnswer(userID primitive.ObjectID, a
 	var filter bson.M
 	if likedStatus == AlreadyDisapproved {
 		statement = bson.M{
-			"$pull": bson.M{"approvedUsers": userID},
+			"$pull": bson.M{"disapprovedUsers": userID},
 			"$inc": bson.M{
 				"statistics.disapproves":      -1,
 				"statistics.alumnDisapproves": pseudoTernaryOp(isAlumn, -1, 0),

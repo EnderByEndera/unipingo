@@ -78,9 +78,18 @@ type AnswersResponse struct {
 	Favorited   map[primitive.ObjectID]uint8 `json:"favorited"`
 }
 
+type ApproveAction string
+
+const (
+	ApproveAnswer    ApproveAction = "APPROVE"
+	DisApproveAnswer ApproveAction = "DISAPPROVE"
+	CancelApprove    ApproveAction = "CANCEL_APPROVE"
+	CancelDisApprove ApproveAction = "CANCEL_DISAPPROVE"
+)
+
 type ApproveOrDisapproveAnswerRequest struct {
-	AnsID   primitive.ObjectID `json:"ansID"`
-	Approve bool               `json:"approve"`
+	AnsID  primitive.ObjectID `json:"ansID"`
+	Action ApproveAction      `json:"action"`
 }
 
 func (ans *Answer) Init() {
