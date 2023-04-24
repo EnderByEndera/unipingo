@@ -1,5 +1,7 @@
 package tests
 
-func TestGetMajor() {
+import "testing"
+
+func TestGetMajor(t *testing.T) {
 
 }
