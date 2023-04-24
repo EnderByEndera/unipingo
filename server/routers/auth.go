@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"melodie-site/server/auth"
+	"melodie-site/server/config"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
 	"melodie-site/server/utils"
@@ -103,8 +104,8 @@ func LoginWechat(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	params.Set("appid", "wxf7dc6cdd6711feea")
-	params.Set("secret", "b4b5f723d87de6782307dda413abe99d")
+	params.Set("appid", config.GetConfig().WECHAT.APPID)
+	params.Set("secret", config.GetConfig().WECHAT.SECRET)
 	params.Set("js_code", reqStruct.Code)
 	params.Set("grant_type", "authorization_code")
 	// params.Set("name","zhaofan")

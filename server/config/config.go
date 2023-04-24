@@ -19,6 +19,13 @@ type Config struct {
 		PGSQL_PORT    string `yaml:"pgsql_port"`
 		PGSQL_DB_NAME string `yaml:"pgsql_db_name"`
 	} `yaml:"addresses"`
+	WECHAT struct {
+		APPID            string `yaml:"appid"`
+		SECRET           string `yaml:"secret"`
+		MCHID            string `yaml:"mchid"`
+		MCHCERTSERIALNUM string `yaml:"mch_certificate_serial_number"`
+		MCHAPIV3KEY      string `yaml:"mch_apiv3_key"`
+	} `yaml:"wechat"`
 }
 
 var config *Config = nil
