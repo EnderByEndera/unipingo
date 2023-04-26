@@ -71,7 +71,7 @@ func (product *Product) InitOrder() (order *Order) {
 	order.SKUItem.SKUExpiration = product.Expiration
 	order.SKUItem.SKUStatus = product.Status
 
-	order.UserID = product.Provider
+	order.UserID = product.Provider // 没有理解这段代码的含义
 	order.Status = Unpaid
 	//value订单的价格还没有初始化
 	order.CreateAt = uint64(time.Now().Unix())

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-playground/assert/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestNewOrder(t *testing.T) {
@@ -26,11 +27,9 @@ func TestNewOrder(t *testing.T) {
 func TestGetOrder(t *testing.T) {
 	order_id := "0"
 	order, err := services.GetOrdersService().GetOrder(order_id)
-	if err != nil {
-		fmt.Println(err)
-		t.Fail()
-	}
+	assert.Equal(t, err, nil)
 	assert.NotEqual(t, order, nil)
+	assert.Equal(t, order.ID.String(), order_id)
 	fmt.Println(order)
 }
 
@@ -38,8 +37,13 @@ func TestPrepay(t *testing.T) {
 	user_admin, err := services.GetAuthService().GetUserByName("admin")
 	assert.Equal(t, err, nil)
 
-	order, err := services.GetOrdersService().GetOrder("0")
-	assert.Equal(t, err, nil)
+	product := &models.Product{
+		ID:       primitive.NewObjectID(),
+		Type:     models.MemberSubscription,
+		Provider: user_admin.ID,
+		Status:   models.ProductLaunch,
+	}
+	order := product.InitOrder()
 
 	prepay_id, code, err := services.GetOrdersService().PrepayOrder(order, &user_admin)
 	assert.Equal(t, err, nil)
