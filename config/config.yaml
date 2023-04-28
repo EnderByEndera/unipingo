@@ -7,3 +7,10 @@ addresses:
   pgsql_addr: "localhost"
   pgsql_port: 5432
   pgsql_db_name: "postgres"
+wechat:
+  appid: "wxf7dc6cdd6711feea"
+  secret: "b4b5f723d87de6782307dda413abe99d"
+  # TODO: 需要和法务沟通注册微信商户以申请以下三个ID
+  mchid: "190000****"
+  mch_certificate_serial_number: "3775B6A45ACD588826D15E583A95F5DD********" 
+  mch_apiv3_key: "2ab9****************************"
