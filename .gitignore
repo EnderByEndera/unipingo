@@ -7,3 +7,5 @@ venv
 nohup.out
 melodie-site
 /compose/gitea
+
+out

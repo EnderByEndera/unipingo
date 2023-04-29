@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"melodie-site/server/config"
 	"melodie-site/server/db"
@@ -84,6 +85,8 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 		Description: core.String(string(order.SKUItem.SKUType)),
 		OutTradeNo:  core.String(order.ID.String()),
 		Attach:      core.String(string(order.Status)),
+		//  微信支付建议订单有效期为5分钟
+		TimeExpire: core.Time(time.UnixMicro(int64(order.CreateAt)).Add(5 * time.Minute)),
 
 		// TODO: 需要进一步沟通具体API名称
 		// 回调URL，用以之后微信支付服务端异步通知后端更新订单状态
