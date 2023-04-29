@@ -97,19 +97,19 @@ type Order struct {
 	TransactionID primitive.ObjectID `bson:"transactionID" json:"transactionID"` //微信支付订单号
 	UserID        primitive.ObjectID `bson:"userID" json:"userID"`
 	// 订单对应的预付单号，微信支付需要
-	PrepayID        string             `bson:"prepayID" json:"prepayID"`
+	PrepayID         string             `bson:"prepayID" json:"prepayID"`
 	TradeTypes       TradeType          `bson:"tradeType" json:"tradeType"`           //交易类型
-	Status          OrderStatus        `bson:"status" json:"status"`                 //交易状态
-	TradeStateDesc  string             `bson:"tradeStateDesc" json:"tradeStateDesc"` //交易状态描述
-	BankType        string             `bson:"bankType" json:"bankType"`             //付款银行
-	Attach          string             `bson:"attach" json:"attach"`                 //附加数据
-	SuccessTime     string             `bson:"successTime" json:"successTime"`       //支付完成时间
-	Amount          *TransactionAmount `json:"amount,omitempty"`                     //订单金额，存储微信通知返回的金额信息
+	Status           OrderStatus        `bson:"status" json:"status"`                 //交易状态
+	TradeStateDesc   string             `bson:"tradeStateDesc" json:"tradeStateDesc"` //交易状态描述
+	BankType         string             `bson:"bankType" json:"bankType"`             //付款银行
+	Attach           string             `bson:"attach" json:"attach"`                 //附加数据
+	SuccessTime      string             `bson:"successTime" json:"successTime"`       //支付完成时间
+	Amount           *TransactionAmount `json:"amount,omitempty"`                     //订单金额，存储微信通知返回的金额信息
 	PromotionDetails []PromotionDetail  `json:"promotion_detail,omitempty"`           //优惠功能
-	SKUItem         SKUInfo            `bson:"skuitem" json:"skuitem"`               //商品信息
-	Value           int64              `bson:"value" json:"value"`                   //订单金额，或许在创建订单的时候用
-	CreateAt        uint64             `bson:"createAt" json:"createAt"`
-	CancelledAt     uint64             `bson:"cancelledAt" json:"cancelledAt"`
+	SKUItem          SKUInfo            `bson:"skuitem" json:"skuitem"`               //商品信息
+	Value            int64              `bson:"value" json:"value"`                   //订单金额，或许在创建订单的时候用
+	CreateAt         uint64             `bson:"createAt" json:"createAt"`
+	CancelledAt      uint64             `bson:"cancelledAt" json:"cancelledAt"`
 }
 
 type Product struct {

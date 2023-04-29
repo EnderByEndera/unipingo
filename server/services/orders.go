@@ -298,3 +298,23 @@ func (service *OrdersService) UpdateOrderStatus(orderID primitive.ObjectID, newS
 	return
 
 }
+
+func (service *OrdersService) GetOrderStatus(order *models.Order) (orderStatus models.OrderStatus, res *core.APIResult, err error) {
+	if err != nil {
+		return
+	}
+	client, err := GetWechatClient()
+	if err != nil {
+		return
+	}
+	jsapiService := jsapi.JsapiApiService{Client: client}
+	resp, res, err := jsapiService.QueryOrderById(context.Background(), jsapi.QueryOrderByIdRequest{
+		TransactionId: core.String(order.TransactionID.String()),
+		Mchid:         core.String(mchID),
+	})
+	if err != nil {
+		return
+	}
+	orderStatus = models.OrderStatus(*resp.TradeState)
+	return
+}
