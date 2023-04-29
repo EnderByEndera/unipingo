@@ -25,7 +25,7 @@ func TestNewOrder(t *testing.T) {
 
 func TestGetOrder(t *testing.T) {
 	order_id := "0"
-	order, err := services.GetOrdersService().GetOrder(order_id)
+	order, err := services.GetOrdersService().GetOrderByID(order_id)
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
@@ -38,7 +38,7 @@ func TestPrepay(t *testing.T) {
 	user_admin, err := services.GetAuthService().GetUserByName("admin")
 	assert.Equal(t, err, nil)
 
-	order, err := services.GetOrdersService().GetOrder("0")
+	order, err := services.GetOrdersService().GetOrderByID("0")
 	assert.Equal(t, err, nil)
 
 	prepay_id, code, err := services.GetOrdersService().PrepayOrder(order, &user_admin)

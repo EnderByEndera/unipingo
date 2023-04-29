@@ -39,14 +39,14 @@ func PrepayOrder(c *gin.Context) {
 
 	// TODO: 获取订单的形式需要和前端沟通
 	order_id := c.Request.Form.Get("out_trade_no")
-	order, err := services.GetOrdersService().GetOrder(order_id)
+	order, err := services.GetOrdersService().GetOrderByID(order_id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	prepay_id, statusCode, err := services.GetOrdersService().PrepayOrder(order, user)
+	prepay_id, res, err := services.GetOrdersService().PrepayOrder(order, user)
 	if err != nil {
-		c.JSON(statusCode, err.Error())
+		c.JSON(res.Response.StatusCode, err.Error())
 	}
 
 	newOrderStatus := models.Unpaid
