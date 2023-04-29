@@ -318,6 +318,7 @@ func (service *AnswerService) giveDislikeToAnswer(userID primitive.ObjectID, ans
 	}
 }
 
+// 以下是对用户和回答加锁，避免多用户同时点赞一篇文章的时候缺失赞。
 func (ansService *AnswerService) ApproveAnswer(userID, ansID primitive.ObjectID) models.StatusReport {
 	ansService.LockUserAndAnswer(userID, ansID)
 	defer ansService.UnlockUserAndAnswer(userID, ansID)
