@@ -37,8 +37,6 @@ func TestPrepay(t *testing.T) {
 	user_admin, err := services.GetAuthService().GetUserByName("admin")
 	assert.Equal(t, err, nil)
 
-	order, err := services.GetOrdersService().GetOrderByID("0")
-	assert.Equal(t, err, nil)
 	product := &models.Product{
 		ID:       primitive.NewObjectID(),
 		Type:     models.MemberSubscription,
