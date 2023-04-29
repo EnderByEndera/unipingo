@@ -36,12 +36,13 @@ type Order struct {
 	ID     primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID primitive.ObjectID `bson:"userID" json:"userID"`
 	// 订单对应的预付单号，微信支付需要
-	PrepayID    string      `bson:"prepayID" json:"prepayID"`
-	SKUItem     SKUInfo     `bson:"skuitem" json:"skuitem"`
-	Status      OrderStatus `bson:"status" json:"status"`
-	Value       int64       `bson:"value" json:"value"`
-	CreateAt    uint64      `bson:"createAt" json:"createAt"`
-	CancelledAt uint64      `bson:"cancelledAt" json:"cancelledAt"`
+	PrepayID      string      `bson:"prepayID" json:"prepayID"`
+	TransactionID string      `bson:"transactionID" json:"transactionID"`
+	SKUItem       SKUInfo     `bson:"skuitem" json:"skuitem"`
+	Status        OrderStatus `bson:"status" json:"status"`
+	Value         int64       `bson:"value" json:"value"`
+	CreateAt      uint64      `bson:"createAt" json:"createAt"`
+	CancelledAt   uint64      `bson:"cancelledAt" json:"cancelledAt"`
 }
 
 type Product struct {

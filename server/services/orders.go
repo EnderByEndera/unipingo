@@ -177,4 +177,22 @@ func (service *OrdersService) UpdateOrderStatus(orderID primitive.ObjectID, newS
 
 }
 
-//后续还要写的：1、支付订单（调用微信支付的API，同时要修改订单状态）2、创建产品product 3、还有啥呢？？？
+func (service *OrdersService) GetOrderStatus(order *models.Order) (orderStatus models.OrderStatus, res *core.APIResult, err error) {
+	if err != nil {
+		return
+	}
+	client, err := GetWechatClient()
+	if err != nil {
+		return
+	}
+	jsapiService := jsapi.JsapiApiService{Client: client}
+	resp, res, err := jsapiService.QueryOrderById(context.Background(), jsapi.QueryOrderByIdRequest{
+		TransactionId: core.String(order.TransactionID),
+		Mchid:         core.String(mchID),
+	})
+	if err != nil {
+		return
+	}
+	orderStatus = models.OrderStatus(*resp.TradeState)
+	return
+}
