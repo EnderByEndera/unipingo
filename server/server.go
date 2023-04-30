@@ -131,6 +131,7 @@ func RunServer() {
 	{
 		// TODO: 具体API命名还需要和前端商定
 		orderRouter.POST("/prepay", authMiddleware(), routers.PrepayOrder)
+		orderRouter.POST("/notify", authMiddleware(), routers.NotifyOrder)
 	}
 
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
