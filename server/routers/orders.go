@@ -48,9 +48,9 @@ func PrepayOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	prepay_id, statusCode, err := services.GetOrdersService().PrepayOrder(order, user)
+	prepay_id, res, err := services.GetOrdersService().PrepayOrder(order, user)
 	if err != nil {
-		c.JSON(statusCode, err.Error())
+		c.JSON(res.Response.StatusCode, err.Error())
 	}
 
 	newOrderStatus := models.NOTPAY

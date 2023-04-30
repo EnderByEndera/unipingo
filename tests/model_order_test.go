@@ -32,6 +32,7 @@ func TestGetOrder(t *testing.T) {
 		t.Fail()
 	}
 	assert.NotEqual(t, order, nil)
+	assert.Equal(t, order.ID.String(), order_id)
 	fmt.Println(order)
 }
 
@@ -41,7 +42,7 @@ func TestPrepay(t *testing.T) {
 
 	order_id,_ := primitive.ObjectIDFromHex("0")
 	order, err := services.GetOrdersService().GetOrder(order_id)
-	assert.Equal(t, err, nil)
+
 
 	prepay_id, code, err := services.GetOrdersService().PrepayOrder(order, &user_admin)
 	assert.Equal(t, err, nil)

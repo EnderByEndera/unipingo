@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"melodie-site/server/config"
 	"melodie-site/server/db"
@@ -96,7 +97,7 @@ func (service *OrdersService) NewOrder(userID primitive.ObjectID, product *model
 	return
 }
 
-func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User) (prepayID *string, statusCode int, err error) {
+func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User) (prepayID string, res *core.APIResult, err error) {
 	appid := config.GetConfig().WECHAT.APPID
 	client, err := GetWechatClient()
 	if err != nil {
@@ -110,6 +111,8 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 		Description: core.String(string(order.SKUItem.SKUType)),
 		OutTradeNo:  core.String(order.ID.String()),
 		Attach:      core.String(string(order.Status)),
+		//  微信支付建议订单有效期为5分钟
+		TimeExpire: core.Time(time.UnixMicro(int64(order.CreateAt)).Add(5 * time.Minute)),
 
 		// TODO: 需要进一步沟通具体API名称
 		// 回调URL，用以之后微信支付服务端异步通知后端更新订单状态
@@ -124,35 +127,12 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 		},
 	})
 
-	// 微信支付会返回状态码
-	statusCode = res.Response.StatusCode
 	if err != nil {
-		/*
-			switch {
-			case core.IsAPIError(err, "SYSTEM_ERROR"):
-				err = errors.New("系统异常，请用相同参数重新调用")
-			case core.IsAPIError(err, "SIGN_ERROR"):
-				err = errors.New("请检查签名参数和方法是否都符合签名算法要求")
-			case core.IsAPIError(err, "RULE_LIMIT"):
-				err = errors.New("因业务规则限制请求频率")
-			case core.IsAPIError(err, "PARAM_ERROR"):
-				err = errors.New("请检查请求参数")
-			case core.IsAPIError(err, "OUT_TRADE_NO_USED"):
-				err = errors.New("请核实商户订单号是否重复提交")
-			case core.IsAPIError(err, "ORDER_NOT_EXIST"):
-				err = errors.New("请检查订单是否发起过交易")
-			case core.IsAPIError(err, "ORDER_CLOSED"):
-				err = errors.New("当前订单已关闭，请重新下单")
-			case core.IsAPIError(err, "OPENID_MISMATCH"):
-				err = errors.New("请确认openid和appid是否匹配")
-			case core.IsAPIError(err, "NO_AUTH"):
-				err = errors.New("请商户前往申请此接口相关权限")
-			}
-		*/
 		return
 	}
-	prepayID = resp.PrepayId
-	updatePrepay := bson.D{{Key: "$set", Value: bson.M{"prepayID": *prepayID}}}
+
+	prepayID = *resp.PrepayId
+	updatePrepay := bson.D{{Key: "$set", Value: bson.M{"prepayID": prepayID}}}
 	err = db.GetCollection("orders").FindOneAndUpdate(context.TODO(), bson.M{"_id": order.ID}, updatePrepay).Err()
 	return
 }

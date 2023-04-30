@@ -141,7 +141,7 @@ func (product *Product) InitOrder() (order *Order) {
 
 	order.Status = NOTPAY
 	//value订单的价格还没有初始化
-	order.CreateAt = uint64(time.Now().Unix())
+	order.CreateAt = uint64(time.Now().UnixMicro()) // 这里建议改为Micro更好
 	return
 
 }
