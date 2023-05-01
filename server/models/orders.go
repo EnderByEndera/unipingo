@@ -79,7 +79,7 @@ type PromotionGoodsDetail struct {
 
 type Order struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	TransactionID primitive.ObjectID `bson:"transactionID" json:"transactionID"` //微信支付订单号
+	TransactionID string             `bson:"transactionID" json:"transactionID"` //微信支付订单号
 	UserID        primitive.ObjectID `bson:"userID" json:"userID"`
 	// 订单对应的预付单号，微信支付需要
 	PrepayID         string             `bson:"prepayID" json:"prepayID"`
@@ -126,7 +126,7 @@ func (product *Product) InitOrder() (order *Order) {
 
 	order.Status = NOTPAY
 	//value订单的价格还没有初始化
-	order.CreateAt = uint64(time.Now().UnixMicro()) // 这里建议改为Micro更好
+	order.CreateAt = uint64(time.Now().Unix())
 	return
 
 }

@@ -24,21 +24,33 @@ func PrepayOrder(c *gin.Context) {
 		// 尝试从JWTToken中获得
 		claims, err := utils.GetClaims(c)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
 		}
 		userID, err := primitive.ObjectIDFromHex(claims.UserID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
 		}
 		user, err = services.GetAuthService().GetUserByID(userID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
 		}
 	} else {
 		var err error
 		user, err = services.GetAuthService().GetUserByWechatOpenID(open_id)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
 		}
 	}
 
@@ -46,16 +58,25 @@ func PrepayOrder(c *gin.Context) {
 	order_id := c.Request.Form.Get("out_trade_no")
 	orderID, err := primitive.ObjectIDFromHex(order_id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 	order, err := services.GetOrdersService().GetOrder(orderID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
-	prepay_id, res, err := services.GetOrdersService().PrepayOrder(order, user)
+	prepay_id, err := services.GetOrdersService().PrepayOrder(order, user)
 	if err != nil {
-		c.JSON(res.Response.StatusCode, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
 	newOrderStatus := models.NOTPAY
@@ -77,11 +98,20 @@ func NotifyOrder(c *gin.Context) {
 	_, err := handler.ParseNotifyRequest(context.Background(), c.Request, transaction)
 	// 如果验签未通过，或者解密失败
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	err = services.GetOrdersService().NotifyOrder(transaction)
+	user, err := services.GetAuthService().GetUserByWechatOpenID(*transaction.Payer.Openid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	err = services.GetOrdersService().NotifyOrder(user, transaction)
 
 	//接收成功：HTTP应答状态码需返回200或204，无需返回应答报文。
 	//接收失败：HTTP应答状态码需返回5XX或4XX，同时需返回应答报文
@@ -93,4 +123,68 @@ func NotifyOrder(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, nil)
 	}
+}
+
+func GetOrderStatus(c *gin.Context) {
+	orderID, err := primitive.ObjectIDFromHex(c.Query("order_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	order, err := services.GetOrdersService().GetOrder(orderID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	orderStatus, err := services.GetOrdersService().GetOrderStatus(order)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// 如果状态没有发生更改，直接返回
+	if *orderStatus == order.Status {
+		c.JSON(http.StatusOK, nil)
+		return
+	}
+
+	// 更新数据库中状态
+	err = services.GetOrdersService().UpdateOrderStatus(orderID, orderStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+}
+
+func CancelOrder(c *gin.Context) {
+	orderID, err := primitive.ObjectIDFromHex(c.Query("order_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	order, err := services.GetOrdersService().GetOrder(orderID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	err = services.GetOrdersService().CancelOrder(order)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	c.JSON(http.StatusOK, nil)
 }

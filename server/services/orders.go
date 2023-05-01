@@ -27,7 +27,7 @@ type OrdersService struct {
 }
 
 type UserOrderInterface struct {
-	UserID  string
+	UserID  primitive.ObjectID
 	OrderID primitive.ObjectID
 }
 
@@ -48,12 +48,12 @@ func GetOrdersService() *OrdersService {
 	return ordersService
 }
 
-func (ordersService *OrdersService) LockUserAndOrder(userID string, orderID primitive.ObjectID) {
+func (ordersService *OrdersService) LockUserAndOrder(userID, orderID primitive.ObjectID) {
 	key := UserOrderInterface{UserID: userID, OrderID: orderID}
 	ordersService.userAndOrderMutex.Lock(key)
 }
 
-func (ordersService *OrdersService) UnlockUserAndOrder(userID string, orderID primitive.ObjectID) {
+func (ordersService *OrdersService) UnlockUserAndOrder(userID, orderID primitive.ObjectID) {
 	key := UserOrderInterface{UserID: userID, OrderID: orderID}
 	ordersService.userAndOrderMutex.Unlock(key)
 }
@@ -93,7 +93,7 @@ func (service *OrdersService) NewOrder(userID primitive.ObjectID, product *model
 	return
 }
 
-func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User) (prepayID string, res *core.APIResult, err error) {
+func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User) (prepayID string, err error) {
 	appid := config.GetConfig().WECHAT.APPID
 	client, err := GetWechatClient()
 	if err != nil {
@@ -101,14 +101,14 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 	}
 
 	jsapiService := jsapi.JsapiApiService{Client: client}
-	resp, res, err := jsapiService.Prepay(context.TODO(), jsapi.PrepayRequest{
+	resp, _, err := jsapiService.Prepay(context.TODO(), jsapi.PrepayRequest{
 		Appid:       core.String(appid),
 		Mchid:       core.String(MchID),
 		Description: core.String(string(order.SKUItem.SKUType)),
 		OutTradeNo:  core.String(order.ID.String()),
 		Attach:      core.String(string(order.Status)),
 		//  微信支付建议订单有效期为5分钟
-		TimeExpire: core.Time(time.UnixMicro(int64(order.CreateAt)).Add(5 * time.Minute)),
+		TimeExpire: core.Time(time.Unix(int64(order.CreateAt), 0).Add(5 * time.Minute)),
 
 		// TODO: 需要进一步沟通具体API名称
 		// 回调URL，用以之后微信支付服务端异步通知后端更新订单状态
@@ -133,7 +133,7 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 	return
 }
 
-func (service *OrdersService) NotifyOrder(transaction *payments.Transaction) (err error) {
+func (service *OrdersService) NotifyOrder(user *models.User, transaction *payments.Transaction) (err error) {
 	_, err = GetWechatClient()
 	if err != nil {
 		return
@@ -146,11 +146,10 @@ func (service *OrdersService) NotifyOrder(transaction *payments.Transaction) (er
 	}
 
 	orderStatus := (*models.OrderStatus)(transaction.TradeState)
-	userID := transaction.Payer.Openid
 
 	// 1、加锁
-	ordersService.LockUserAndOrder(*userID, orderID)
-	defer ordersService.UnlockUserAndOrder(*userID, orderID)
+	ordersService.LockUserAndOrder(user.ID, orderID)
+	defer ordersService.UnlockUserAndOrder(user.ID, orderID)
 
 	// 2、先查询数据库，防止收集重复信息
 	order, err := ordersService.GetOrder(orderID)
@@ -158,32 +157,29 @@ func (service *OrdersService) NotifyOrder(transaction *payments.Transaction) (er
 		return
 	}
 
-	if order.TransactionID == primitive.NilObjectID {
+	if order.TransactionID == "" {
 		// 重复接受微信支付端的Transaction
 		return
 	}
 
 	fmt.Println(transaction.TransactionId)
 
-	// 3、这里要更新order的很多信息   数据库里面对象是order  微信支付通知对象是transcation
-	transactionID, err := primitive.ObjectIDFromHex(*transaction.TransactionId)
-	if err != nil {
-		return
-	}
-	order.TransactionID = transactionID
+	order.TransactionID = *transaction.TransactionId
 	order.TradeTypes = models.TradeType(*transaction.TradeType)
 	order.Status = *orderStatus
 	order.TradeStateDesc = *transaction.TradeStateDesc
 	order.BankType = *transaction.BankType
 	order.Attach = *transaction.Attach
 	order.SuccessTime = *transaction.SuccessTime
-	user, err := GetAuthService().GetUserByWechatOpenID(*transaction.Payer.Openid)
+	order.UserID = user.ID
+	err = copier.Copy(&order.Amount, &transaction.Amount)
 	if err != nil {
 		return
 	}
-	order.UserID = user.ID
-	copier.Copy(&order.Amount, &transaction.Amount)
 	copier.Copy(&order.PromotionDetails, &transaction.PromotionDetail)
+	if err != nil {
+		return
+	}
 
 	//4、更新到数据库
 	statement := bson.M{"$set": &order}
@@ -259,7 +255,7 @@ func (service *OrdersService) UpdateOrderStatus(orderID primitive.ObjectID, newS
 
 }
 
-func (service *OrdersService) GetOrderStatus(order *models.Order) (orderStatus models.OrderStatus, res *core.APIResult, err error) {
+func (service *OrdersService) GetOrderStatus(order *models.Order) (orderStatus *models.OrderStatus, err error) {
 	if err != nil {
 		return
 	}
@@ -268,14 +264,14 @@ func (service *OrdersService) GetOrderStatus(order *models.Order) (orderStatus m
 		return
 	}
 	jsapiService := jsapi.JsapiApiService{Client: client}
-	resp, res, err := jsapiService.QueryOrderById(context.Background(), jsapi.QueryOrderByIdRequest{
-		TransactionId: core.String(order.TransactionID.String()),
+	resp, _, err := jsapiService.QueryOrderById(context.Background(), jsapi.QueryOrderByIdRequest{
+		TransactionId: core.String(order.TransactionID),
 		Mchid:         core.String(MchID),
 	})
 	if err != nil {
 		return
 	}
-	orderStatus = models.OrderStatus(*resp.TradeState)
+	orderStatus = (*models.OrderStatus)(resp.TradeState)
 	return
 }
 
