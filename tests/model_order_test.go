@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
-	"net/http"
 	"testing"
 
 	"github.com/go-playground/assert/v2"
@@ -48,10 +47,9 @@ func TestPrepay(t *testing.T) {
 	}
 	order := product.InitOrder()
 
-	prepay_id, code, err := services.GetOrdersService().PrepayOrder(order, &user_admin)
+	prepay_id, err := services.GetOrdersService().PrepayOrder(order, &user_admin)
 	assert.Equal(t, err, nil)
 	assert.NotEqual(t, prepay_id, nil)
-	assert.Equal(t, code, http.StatusOK)
 }
 
 func TestUpdateOrderStatus(t *testing.T) {
