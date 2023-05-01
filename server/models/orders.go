@@ -55,41 +55,26 @@ type TransactionAmount struct {
 
 // PromotionDetail
 type PromotionDetail struct {
-	// 券ID
-	CouponId *string `json:"coupon_id,omitempty"`
-	// 优惠名称
-	Name *string `json:"name,omitempty"`
-	// GLOBAL：全场代金券；SINGLE：单品优惠
-	Scope *string `json:"scope,omitempty"`
-	// CASH：充值；NOCASH：预充值。
-	Type *string `json:"type,omitempty"`
-	// 优惠券面额
-	Amount *int64 `json:"amount,omitempty"`
-	// 活动ID，批次ID
-	StockId *string `json:"stock_id,omitempty"`
-	// 单位为分
-	WechatpayContribute *int64 `json:"wechatpay_contribute,omitempty"`
-	// 单位为分
-	MerchantContribute *int64 `json:"merchant_contribute,omitempty"`
-	// 单位为分
-	OtherContribute *int64 `json:"other_contribute,omitempty"`
-	// CNY：人民币，境内商户号仅支持人民币。
-	Currency    *string                `json:"currency,omitempty"`
-	GoodsDetail []PromotionGoodsDetail `json:"goods_detail,omitempty"`
+	CouponId            *string                `bson:"couponID" json:"couponID,omitempty"`                       // 券ID
+	Name                *string                `bson:"name" json:"name,omitempty"`                               // 优惠名称
+	Scope               *string                `bson:"scope" json:"scope,omitempty"`                             // GLOBAL：全场代金券；SINGLE：单品优惠
+	Type                *string                `bson:"type" json:"type,omitempty"`                               // CASH：充值；NOCASH：预充值。
+	Amount              *int64                 `bson:"amount" json:"amount,omitempty"`                           // 优惠券面额
+	StockId             *string                `bson:"stockID" json:"stockID,omitempty"`                         // 活动ID，批次ID
+	WechatpayContribute *int64                 `bson:"wechatpayContribute" json:"wechatpayContribute,omitempty"` // 单位为分
+	MerchantContribute  *int64                 `bson:"merchantContribute" json:"merchantContribute,omitempty"`   // 单位为分
+	OtherContribute     *int64                 `bson:"otherContribute" json:"otherContribute,omitempty"`         // 单位为分
+	Currency            *string                `bson:"currency" json:"currency,omitempty"`                       // CNY：人民币，境内商户号仅支持人民币。
+	GoodsDetail         []PromotionGoodsDetail `bson:"goodsDetail" json:"goodsDetail,omitempty"`
 }
 
 // PromotionGoodsDetail
 type PromotionGoodsDetail struct {
-	// 商品编码
-	GoodsId *string `json:"goods_id"`
-	// 商品数量
-	Quantity *int64 `json:"quantity"`
-	// 商品价格
-	UnitPrice *int64 `json:"unit_price"`
-	// 商品优惠金额
-	DiscountAmount *int64 `json:"discount_amount"`
-	// 商品备注
-	GoodsRemark *string `json:"goods_remark,omitempty"`
+	GoodsId        *string `bson:"goodsID" json:"goodsID"`                   // 商品编码
+	Quantity       *int64  `bson:"quantity" json:"quantity"`                 // 商品数量
+	UnitPrice      *int64  `bson:"unitPrice" json:"unitPrice"`               // 商品价格
+	DiscountAmount *int64  `bson:"discountAmount" json:"discountAmount"`     // 商品优惠金额
+	GoodsRemark    *string `bson:"goodsRemark" json:"goodsRemark,omitempty"` // 商品备注
 }
 
 type Order struct {
@@ -98,16 +83,16 @@ type Order struct {
 	UserID        primitive.ObjectID `bson:"userID" json:"userID"`
 	// 订单对应的预付单号，微信支付需要
 	PrepayID         string             `bson:"prepayID" json:"prepayID"`
-	TradeTypes       TradeType          `bson:"tradeType" json:"tradeType"`           //交易类型
-	Status           OrderStatus        `bson:"status" json:"status"`                 //交易状态
-	TradeStateDesc   string             `bson:"tradeStateDesc" json:"tradeStateDesc"` //交易状态描述
-	BankType         string             `bson:"bankType" json:"bankType"`             //付款银行
-	Attach           string             `bson:"attach" json:"attach"`                 //附加数据
-	SuccessTime      string             `bson:"successTime" json:"successTime"`       //支付完成时间
-	Amount           *TransactionAmount `json:"amount,omitempty"`                     //订单金额，存储微信通知返回的金额信息
-	PromotionDetails []PromotionDetail  `json:"promotion_detail,omitempty"`           //优惠功能
-	SKUItem          SKUInfo            `bson:"skuitem" json:"skuitem"`               //商品信息
-	Value            int64              `bson:"value" json:"value"`                   //订单金额，或许在创建订单的时候用
+	TradeTypes       TradeType          `bson:"tradeType" json:"tradeType"`                       //交易类型
+	Status           OrderStatus        `bson:"status" json:"status"`                             //交易状态
+	TradeStateDesc   string             `bson:"tradeStateDesc" json:"tradeStateDesc"`             //交易状态描述
+	BankType         string             `bson:"bankType" json:"bankType"`                         //付款银行
+	Attach           string             `bson:"attach" json:"attach"`                             //附加数据
+	SuccessTime      string             `bson:"successTime" json:"successTime"`                   //支付完成时间
+	Amount           *TransactionAmount `bson:"amount" json:"amount,omitempty"`                   //订单金额，存储微信通知返回的金额信息
+	PromotionDetails []PromotionDetail  `bson:"promotionDetail" json:"promotionDetail,omitempty"` //优惠功能
+	SKUItem          SKUInfo            `bson:"skuitem" json:"skuitem"`                           //商品信息
+	Value            int64              `bson:"value" json:"value"`                               //订单金额，或许在创建订单的时候用
 	CreateAt         uint64             `bson:"createAt" json:"createAt"`
 	CancelledAt      uint64             `bson:"cancelledAt" json:"cancelledAt"`
 }
