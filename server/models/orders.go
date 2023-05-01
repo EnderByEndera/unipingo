@@ -47,10 +47,10 @@ const (
 )
 
 type TransactionAmount struct {
-	Currency      *string `json:"currency,omitempty"`
-	PayerCurrency *string `json:"payer_currency,omitempty"`
-	PayerTotal    *int64  `json:"payer_total,omitempty"`
-	Total         *int64  `json:"total,omitempty"`
+	Currency      *string `bson:"currency" json:"currency,omitempty"`
+	PayerCurrency *string `bson:"payerCurrency" json:"payerCurrency,omitempty"`
+	PayerTotal    *int64  `bson:"payerTotal" json:"payerTotal,omitempty"`
+	Total         *int64  `bson:"total" json:"total,omitempty"`
 }
 
 // PromotionDetail

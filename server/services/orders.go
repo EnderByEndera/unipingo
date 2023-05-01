@@ -176,7 +176,7 @@ func (service *OrdersService) NotifyOrder(userID primitive.ObjectID, transaction
 	if err != nil {
 		return
 	}
-	copier.Copy(&order.PromotionDetails, &transaction.PromotionDetail)
+	err = copier.Copy(&order.PromotionDetails, &transaction.PromotionDetail)
 	if err != nil {
 		return
 	}
