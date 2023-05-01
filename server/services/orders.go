@@ -133,7 +133,7 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 	return
 }
 
-func (service *OrdersService) NotifyOrder(user *models.User, transaction *payments.Transaction) (err error) {
+func (service *OrdersService) NotifyOrder(userID primitive.ObjectID, transaction *payments.Transaction) (err error) {
 	_, err = GetWechatClient()
 	if err != nil {
 		return
@@ -148,8 +148,8 @@ func (service *OrdersService) NotifyOrder(user *models.User, transaction *paymen
 	orderStatus := (*models.OrderStatus)(transaction.TradeState)
 
 	// 1、加锁
-	ordersService.LockUserAndOrder(user.ID, orderID)
-	defer ordersService.UnlockUserAndOrder(user.ID, orderID)
+	ordersService.LockUserAndOrder(userID, orderID)
+	defer ordersService.UnlockUserAndOrder(userID, orderID)
 
 	// 2、先查询数据库，防止收集重复信息
 	order, err := ordersService.GetOrder(orderID)
@@ -171,7 +171,7 @@ func (service *OrdersService) NotifyOrder(user *models.User, transaction *paymen
 	order.BankType = *transaction.BankType
 	order.Attach = *transaction.Attach
 	order.SuccessTime = *transaction.SuccessTime
-	order.UserID = user.ID
+	order.UserID = userID
 	err = copier.Copy(&order.Amount, &transaction.Amount)
 	if err != nil {
 		return

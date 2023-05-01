@@ -104,14 +104,14 @@ func NotifyOrder(c *gin.Context) {
 		return
 	}
 
-	user, err := services.GetAuthService().GetUserByWechatOpenID(*transaction.Payer.Openid)
+	userID, err := utils.GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
-	err = services.GetOrdersService().NotifyOrder(user, transaction)
+	err = services.GetOrdersService().NotifyOrder(userID, transaction)
 
 	//接收成功：HTTP应答状态码需返回200或204，无需返回应答报文。
 	//接收失败：HTTP应答状态码需返回5XX或4XX，同时需返回应答报文
