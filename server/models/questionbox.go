@@ -8,32 +8,43 @@ import (
 
 // 个人展示内容
 type PersonalInfo struct {
-	CEEPlace  string `bson:"CEEPlace" json:"CEEPlace"`   // 高考所在地
-	Subject   string `bson:"subject" json:"subject"`     // 高考科目
-	Age       uint32 `bson:"age" json:"age"`             // 年龄
-	Gender    string `bson:"gender" json:"gender"`       // 性别
-	Situation string `bson:"situation" json:"situation"` // 具体情况
+	CEEPlace  string `bson:"CEEPlace" json:"CEEPlace"`             // 高考所在地
+	Subject   string `bson:"subject" json:"subject"`               // 高考科目
+	Age       uint32 `bson:"age" json:"age"`                       // 年龄
+	Gender    string `bson:"gender" json:"gender"`                 // 性别
+	Situation string `bson:"situation" json:"situation,omitempty"` // 具体情况
 }
 
 // 提问箱问题
 type QuestionBoxQuestion struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	UserID      primitive.ObjectID `bson:"userID" json:"userID"`           // 提问人ID
-	Title       string             `bson:"title" json:"title"`             // 问题标题
-	Description string             `bson:"description" json:"description"` // 问题描述
-	CreateTime  uint64             `bson:"createTime" json:"createTime"`
-	UpdateTime  uint64             `bson:"updateTime" json:"updateTime"`
-	School      EntityWithName     `bson:"schoolID" json:"schoolID"`     // 所提问学校的ID
-	Major       EntityWithName     `bson:"majorID" json:"majorID"`       // 所提问专业的ID
-	Questioner  PersonalInfo       `bson:"questioner" json:"questioner"` // 提问者相关数据
+	ID          primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
+	UserID      primitive.ObjectID   `bson:"userID" json:"userID"`           // 提问人ID
+	Title       string               `bson:"title" json:"title"`             // 问题标题
+	Description string               `bson:"description" json:"description"` // 问题描述
+	CreateTime  uint64               `bson:"createTime" json:"createTime"`
+	UpdateTime  uint64               `bson:"updateTime" json:"updateTime"`
+	School      EntityWithName       `bson:"school" json:"school"`         // 所提问学校的ID
+	Major       EntityWithName       `bson:"major" json:"major"`           // 所提问专业的ID
+	Questioner  PersonalInfo         `bson:"questioner" json:"questioner"` // 提问者相关数据
+	Answers     []primitive.ObjectID `bson:"answers" json:"answers"`       // 该问题下所有的回答
 }
 
 func (question *QuestionBoxQuestion) Init() {
 	question.CreateTime = uint64(time.Now().Unix())
+	question.Answers = make([]primitive.ObjectID, 0)
+}
+
+type NewQuestionReq struct {
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	School      EntityWithName `json:"school"`
+	Major       EntityWithName `json:"major"`
+	Questioner  PersonalInfo   `json:"questioner"`
 }
 
 type QuestionInLabelInfo struct {
 	ID      primitive.ObjectID `bson:"questionID" json:"questionID"`
+	Name    string             `bson:"name" json:"name"`
 	HasRead bool               `bson:"hasRead" json:"hasRead"`
 }
 
@@ -49,7 +60,7 @@ type QuestionLabel struct {
 	Content    string                `bson:"content" json:"content"`
 	CreateTime uint64                `bson:"createTime" json:"createTime"`
 	UpdateTime uint64                `bson:"updateTime" json:"updateTime"`
-	Statistics LabelStats            `bson:"labelInfo" json:"labelInfo"` // 问题标签相关的数据
+	Statistics LabelStats            `bson:"stats" json:"stats"` // 问题标签相关的数据
 	Questions  []QuestionInLabelInfo `bson:"questions" json:"questions"`
 }
 

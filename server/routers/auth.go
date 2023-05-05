@@ -115,6 +115,9 @@ func LoginWechat(c *gin.Context) {
 	urlPath := Url.String()
 	fmt.Println(urlPath) // https://httpbin.org/get?age=23&name=zhaofan
 	resp, err := http.Get(urlPath)
+	if err != nil {
+		c.String(http.StatusUnauthorized, "无效Wechat请求")
+	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -125,6 +128,11 @@ func LoginWechat(c *gin.Context) {
 	err = json.Unmarshal(body, &wechatLoginResponse)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	// 如果OpenID为空，说明js_code无效
+	if wechatLoginResponse.OpenID == "" {
+		c.String(http.StatusUnauthorized, "无效Wechat请求")
 		return
 	}
 	user, err := services.GetAuthService().GetUserByWechatOpenID(wechatLoginResponse.OpenID)

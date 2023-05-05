@@ -5,6 +5,7 @@ import (
 	"melodie-site/server/models"
 	"melodie-site/server/routers"
 	"melodie-site/server/services"
+	"melodie-site/server/svcerror"
 	"melodie-site/server/utils"
 	"net/http"
 
@@ -50,6 +51,24 @@ func TlsHandler() gin.HandlerFunc {
 	}
 }
 
+func ErrorHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+		if e := c.Errors.Last(); e != nil {
+			err := e.Err
+			if svcErr, ok := err.(*svcerror.SvcErr); ok {
+				c.JSON(svcErr.Code, svcErr)
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code": 500,
+					"msg":  "Internal Server Error",
+					"data": err.Error(),
+				})
+			}
+		}
+	}
+}
+
 func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
@@ -86,6 +105,7 @@ func RunServer() {
 	r := gin.Default()
 	r.Use(TlsHandler())
 	r.Use(Cors())
+	r.Use(ErrorHandler())
 	initServer()
 	fileRouter := r.Group("/api/file")
 	{
@@ -134,6 +154,21 @@ func RunServer() {
 		orderRouter.POST("/notify", authMiddleware(), routers.NotifyOrder)
 		orderRouter.POST("/getstatus", authMiddleware(), routers.GetOrderStatus)
 		orderRouter.POST("/cancel", authMiddleware(), routers.CancelOrder)
+	}
+	questionBoxRouter := r.Group("/api/questionbox")
+	{
+		qbQuestionRouter := questionBoxRouter.Group("/question")
+		{
+			qbQuestionRouter.POST("/new", authMiddleware(), routers.NewQuestion)
+			qbQuestionRouter.GET("/query", authMiddleware(), routers.QueryQuestionByID)
+			qbQuestionRouter.GET("/list", authMiddleware(), routers.QueryQuestionList)
+			qbqUpdateRouter := qbQuestionRouter.Group("/update")
+			{
+				qbqUpdateRouter.POST("/description", authMiddleware(), routers.UpdateQuestionDescription)
+				qbqUpdateRouter.POST("/school", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
+				qbqUpdateRouter.POST("/major", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
+			}
+		}
 	}
 
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
