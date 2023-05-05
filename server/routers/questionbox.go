@@ -166,14 +166,7 @@ func UpdateQuestionDescription(c *gin.Context) {
 	}
 
 	question := new(models.QuestionBoxQuestion)
-	data, err := c.GetRawData()
-	if err != nil {
-		c.Error(svcerror.New(http.StatusBadRequest, err))
-		return
-	}
-
-	err = json.Unmarshal(data, question)
-	if err != nil {
+	if err = c.ShouldBind(question); err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
@@ -202,14 +195,7 @@ func UpdateQuestionSchoolOrMajor(c *gin.Context) {
 	}
 
 	question := new(models.QuestionBoxQuestion)
-	data, err := c.GetRawData()
-	if err != nil {
-		c.Error(svcerror.New(http.StatusBadRequest, err))
-		return
-	}
-
-	err = json.Unmarshal(data, question)
-	if err != nil {
+	if err = c.ShouldBind(question); err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
