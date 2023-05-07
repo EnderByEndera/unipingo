@@ -86,7 +86,7 @@ func GetWechatClient() (client *core.Client, err error) {
 func (service *OrdersService) NewOrder(userID primitive.ObjectID, product *models.Product) (order *models.Order, err error) {
 	order = product.InitOrder()
 	order.UserID = userID
-	_, err = db.GetCollection("orders").InsertOne(context.Background(), order)
+	_, err = db.GetCollection("orders").InsertOne(context.TODO(), order)
 	if err != nil {
 		return
 	}
@@ -264,7 +264,7 @@ func (service *OrdersService) GetOrderStatus(order *models.Order) (orderStatus *
 		return
 	}
 	jsapiService := jsapi.JsapiApiService{Client: client}
-	resp, _, err := jsapiService.QueryOrderById(context.Background(), jsapi.QueryOrderByIdRequest{
+	resp, _, err := jsapiService.QueryOrderById(context.TODO(), jsapi.QueryOrderByIdRequest{
 		TransactionId: core.String(order.TransactionID),
 		Mchid:         core.String(MchID),
 	})
@@ -281,7 +281,7 @@ func (service *OrdersService) CancelOrder(order *models.Order) (err error) {
 		return
 	}
 	jsapiService := jsapi.JsapiApiService{Client: client}
-	_, err = jsapiService.CloseOrder(context.Background(), jsapi.CloseOrderRequest{
+	_, err = jsapiService.CloseOrder(context.TODO(), jsapi.CloseOrderRequest{
 		OutTradeNo: core.String(order.ID.String()),
 		Mchid:      core.String(MchID),
 	})
