@@ -135,6 +135,12 @@ func RunServer() {
 		orderRouter.POST("/getstatus", authMiddleware(), routers.GetOrderStatus)
 		orderRouter.POST("/cancel", authMiddleware(), routers.CancelOrder)
 	}
+	questionboxRouter := r.Group("/api/questionbox")
+	{
+		// TODO: 具体API命名还需要和前端商定
+		questionboxRouter.POST("/newQuestionboxAnswer", authMiddleware(), routers.NewQuestionBoxAnswer)
+		questionboxRouter.POST("/getanswerList", routers.GetAnswerList)
+	}
 
 	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
 }
