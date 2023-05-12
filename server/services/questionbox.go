@@ -42,6 +42,7 @@ func (service *QuestionBoxService) NewQuestion(question *models.QuestionBoxQuest
 		err = errors.New("该问题没有填写标题或描述")
 		return
 	}
+	//如果已经存在  用户要到哪里去看呢（大学和专业那里展示的问题应该都是写死的，和提问箱无关）提问箱的问题只有参与者知道，其他用户都看不到
 	if questionExists(question) {
 		err = errors.New("该问题已存在")
 		return
@@ -127,14 +128,17 @@ func (service *QuestionBoxService) QuestionList(user *models.User, page int64, p
 }
 
 func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.ObjectID, answer *models.QuestionBoxAnswer) (err error) {
+	// TODO 需要验证问题的school、major和答案的school、major相同吗（如果answer的两个属性来自于question就不用了吧）
 	filter := bson.M{
 		"_id": questionID,
 	}
+	//这个好像把answer所有属性值给answers属性了
 	update := bson.M{
 		"$push": bson.M{
 			"answers": answer,
 		},
 	}
+	
 	err = db.GetCollection("questions").FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }
@@ -196,38 +200,119 @@ func (service *QuestionBoxService) QueryQuestionsFromLabelID(labelID primitive.O
 	return
 }
 
-func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (err error) {
+func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (docID primitive.ObjectID, err error) {
+	if answer.Content == "" {
+		err = errors.New("该回答没有填写内容")
+		return
+	}
 	answer.Init()
-	//TODO:数据库名字
-	_, err = db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
+
+	questionID := answer.QuestionID
+	//和question关联
+	//TODO：如果后面insertOne插入错误，AddAnswerToQuestion函数需要回滚
+	_, err = questionBoxService.QueryQuestionByID(questionID)
 	if err != nil {
 		return
 	}
+	res, err := db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
+	if err != nil {
+		return
+	}
+	docID = res.InsertedID.(primitive.ObjectID)
+	err = questionBoxService.AddAnswerToQuestion(questionID, answer)
+	if err != nil {
+		err = errors.New("回答和问题关联失败")
+		return
+	}
+
 	return
 }
 
 func (service *QuestionBoxService) QueryAnswerByID(answerID primitive.ObjectID) (answer *models.QuestionBoxAnswer, err error) {
 	filter := bson.M{"_id": answerID}
 	answer = &models.QuestionBoxAnswer{}
+	if answerID == primitive.NilObjectID {
+		err = errors.New("answerID为空")
+		return
+	}
 	err = db.GetCollection("questionboxanswer").FindOne(context.TODO(), filter).Decode(answer)
 	return
 }
 
+
 func (service *AnswerService) DeleteQuestionboxAnswerByID(answerID primitive.ObjectID) (err error) {
-	filter := bson.D{{"_id", answerID}}
+	if answerID == primitive.NilObjectID {
+		err = errors.New("answerID为空")
+		return
+	}
+	filter := bson.M{"_id": answerID}
 	_, err = db.GetCollection("questionboxanswer").DeleteOne(context.TODO(), filter)
 	return
 }
 
-func (service *QuestionBoxService) AnswerList(question *models.QuestionBoxQuestion, page int64) (answers []*models.QuestionBoxAnswer, err error) {
+// 这个函数是列出一个问题的所有回答
+func (service *QuestionBoxService) AnswerList(question *models.QuestionBoxQuestion, page int64, pageNum int64) (answers []*models.QuestionBoxAnswer, err error) {
+	if question == nil {
+		err = errors.New("question为空")
+		return
+	}
 	questionID := question.ID
 	filter := bson.M{"questionID": questionID}
-	opts := options.Find().SetLimit(20).SetSkip(20 * page)
-	// TODO: 数据库名字
+
+	if page < 0 || pageNum < 0 {
+		err = errors.New("page或pageNum小于0")
+		return
+	}
+	opts := options.Find().SetLimit(pageNum).SetSkip(pageNum * page)
+
 	res, err := db.GetCollection("questionboxanswer").Find(context.TODO(), filter, opts)
 	if err != nil {
 		return
 	}
 	err = res.All(context.TODO(), &answers)
+	return
+}
+
+// 这个函数列出我的回答列表
+func (service *QuestionBoxService) MyAnswerList(user *models.User, page int64, pageNum int64) (answers []*models.QuestionBoxAnswer, err error) {
+	if user == nil {
+		err = errors.New("user为空")
+		return
+	}
+
+	filter := bson.M{
+		"userID": user.ID,
+	}
+
+	if page < 0 || pageNum < 0 {
+		err = errors.New("page或pageNum小于0")
+		return
+	}
+	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
+	cur, err := db.GetCollection("questionboxanswer").Find(context.TODO(), filter, opts)
+	if err != nil {
+		return
+	}
+
+	cur.All(context.TODO(), &answers)
+	return
+}
+
+func (service *QuestionBoxService) UpdateAnswerContent(answer *models.QuestionBoxAnswer) (err error) {
+	if answer.Content == "" {
+		err = errors.New("更新的回答为空")
+		return
+	}
+
+	filter := bson.M{
+		"_id": answer.ID,
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"content": answer.Content,
+		},
+	}
+	err = db.GetCollection("questionboxanswer").FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }

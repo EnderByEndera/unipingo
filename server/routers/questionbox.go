@@ -15,74 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func NewQuestionBoxAnswer(c *gin.Context) {
-	dataBytes, err := c.GetRawData()
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-	// TODO 这里是不是要写一个questionboxanswerRequest结构体
-	req := &models.QuestionBoxAnswer{}
-	err = json.Unmarshal(dataBytes, req)
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
-	userID, err := utils.GetUserID(c)
-	if err != nil {
-		c.AbortWithError(http.StatusNotFound, err)
-		return
-	}
-	ans := &models.QuestionBoxAnswer{
-		UserID:     userID,
-		Content:    req.Content,
-		QuestionID: req.QuestionID,
-		School:     req.School,
-		Major:      req.Major,
-		Respondant: models.PersonalInfo{
-			CEEPlace:  req.Respondant.CEEPlace,
-			Subject:   req.Respondant.Subject,
-			Age:       req.Respondant.Age,
-			Gender:    req.Respondant.Gender,
-			Situation: req.Respondant.Situation,
-		},
-	}
-	err = services.GetQuestionBoxService().NewAnswer(ans)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
-		return
-	}
-}
-
-func GetAnswerList(c *gin.Context) {
-
-	// TODO  前端都传递哪些参数呢（目前用到questionID、page）
-	questionboxID, err := primitive.ObjectIDFromHex(c.Query("questionboxID"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
-		return
-	}
-	question, err := services.GetQuestionBoxService().QueryQuestionByID(questionboxID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, makeResponse(false, errors.New("问题不存在"), nil))
-		return
-
-	}
-	pageStr := c.Query("page")
-	page, err := strconv.Atoi(pageStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, makeResponse(false, err, nil))
-		return
-	}
-
-	answers, err := services.GetQuestionBoxService().AnswerList(question, int64(page))
-	if err != nil {
-		c.JSON(http.StatusNotFound, makeResponse(false, errors.New("数据库查询错误"), nil))
-	} else {
-		c.JSON(http.StatusOK, makeResponse(true, nil, answers))
-	}
-}
 func NewQuestion(c *gin.Context) {
 	data, err := c.GetRawData()
 	if err != nil {
@@ -277,4 +209,216 @@ func UpdateQuestionSchoolOrMajor(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"update": true,
 	})
+}
+
+func NewQuestionBoxAnswer(c *gin.Context) {
+	dataBytes, err := c.GetRawData()
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	req := &models.QuestionBoxAnswerReq{}
+	err = json.Unmarshal(dataBytes, req)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	// 校验学校或专业ID是否正确
+	if req.School.ID != primitive.NilObjectID {
+		hei, err := services.GetHEIService().GetHEI(req.School.ID)
+		if err != nil {
+			c.Error(svcerror.New(http.StatusBadRequest, err))
+			return
+		}
+		if hei.Name != req.School.Name {
+			err = errors.New("HEI名称和ID对应失败")
+			c.Error(svcerror.New(http.StatusBadRequest, err))
+			return
+		}
+	} else if req.Major.ID != primitive.NilObjectID {
+		major, err := services.GetMajorService().GetMajor(req.Major.ID)
+		if err != nil {
+			c.Error(svcerror.New(http.StatusBadRequest, err))
+			return
+		}
+		if major.Name != req.Major.Name {
+			err = errors.New("专业名称和ID对应失败")
+			c.Error(svcerror.New(http.StatusBadRequest, err))
+			return
+		}
+	} else {
+		// 学校和专业必须二选一，否则Request失败
+		err = errors.New("学校和专业ID均为空")
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+	// 校验userID是否有效
+	user, err := services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+	ans := &models.QuestionBoxAnswer{
+		UserID:     user.ID,
+		Content:    req.Content,
+		QuestionID: req.QuestionID,
+		School:     req.School,
+		Major:      req.Major,
+		Respondant: req.Respondant,
+	}
+	docID, err := services.GetQuestionBoxService().NewAnswer(ans)
+
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"docID": docID,
+	})
+}
+
+func QueryAnswerByID(c *gin.Context) {
+	answerID, err := primitive.ObjectIDFromHex(c.Query("answer_id"))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	_, err = services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	question, err := services.GetQuestionBoxService().QueryQuestionByID(answerID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusInternalServerError, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, question)
+}
+
+func GetAnswerList(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	_, err = services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	questionboxID, err := primitive.ObjectIDFromHex(c.Query("questionboxID"))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+	question, err := services.GetQuestionBoxService().QueryQuestionByID(questionboxID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+
+	}
+	pageStr := c.Query("page")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+	pageNums := c.Query("pageNum")
+	pageNum, err := strconv.Atoi(pageNums)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	answers, err := services.GetQuestionBoxService().AnswerList(question, int64(page), int64(pageNum))
+	if err != nil {
+		c.JSON(http.StatusNotFound, makeResponse(false, errors.New("数据库查询错误"), nil))
+	} else {
+		c.JSON(http.StatusOK, makeResponse(true, nil, answers))
+	}
+}
+
+func GetMyAnswerList(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	user, err := services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	pageNum, err := strconv.Atoi(c.Query("pageNum"))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	answers, err := services.GetQuestionBoxService().MyAnswerList(user, int64(page), int64(pageNum))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, answers)
+}
+
+func UpdateAnswerContent(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	_, err = services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	answer := &models.QuestionBoxAnswer{}
+	if err = c.ShouldBind(answer); err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	err = services.GetQuestionBoxService().UpdateAnswerContent(answer)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"update": true,
+	})
+
 }

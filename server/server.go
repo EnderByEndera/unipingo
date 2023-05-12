@@ -172,8 +172,14 @@ func RunServer() {
 		}
 		qbAnswerRouter := questionBoxRouter.Group("/answer")
 		{
-			qbAnswerRouter.POST("/newQuestionboxAnswer", authMiddleware(), routers.NewQuestionBoxAnswer)
-			qbAnswerRouter.POST("/getanswerList", routers.GetAnswerList)
+			qbAnswerRouter.POST("/new", authMiddleware(), routers.NewQuestionBoxAnswer)
+			qbAnswerRouter.GET("/query",authMiddleware(),routers.QueryAnswerByID)
+			qbAnswerRouter.GET("/list", authMiddleware(),routers.GetAnswerList)
+			qbAnswerRouter.GET("/mylist",authMiddleware(),routers.GetMyAnswerList)
+			qbqUpdateRouter := qbQuestionRouter.Group("/update")
+			{
+				qbqUpdateRouter.POST("/content",authMiddleware(),routers.UpdateAnswerContent)
+			}
 		}
 	}
 

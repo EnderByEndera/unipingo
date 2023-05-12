@@ -77,6 +77,13 @@ type QuestionBoxAnswer struct {
 	UpdateTime uint64             `bson:"updateTime" json:"updateTime"`
 	Respondant PersonalInfo       `bson:"respondant" json:"respondant"` // 回答者相关数据
 }
+type QuestionBoxAnswerReq struct {
+	Content    string             `json:"content"`    // 回答内容
+	QuestionID primitive.ObjectID `json:"questionID"` // 所属问题的ID
+	School     EntityWithName     `json:"school"`
+	Major      EntityWithName     `json:"major"`
+	Respondant PersonalInfo       `json:"respondant"` // 回答者相关数据
+}
 
 func (answer *QuestionBoxAnswer) Init() {
 	answer.CreateTime = uint64(time.Now().Unix())
