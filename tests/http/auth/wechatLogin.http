@@ -1,0 +1,6 @@
+POST https://127.0.0.1:8787/api/auth/wechatLogin
+Content-Type: application/json
+
+{
+    "code": "404"
+}

@@ -2,31 +2,43 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"melodie-site/server/config"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
+	myutils "melodie-site/server/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/jinzhu/copier"
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/option"
+	"github.com/wechatpay-apiv3/wechatpay-go/services/payments"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/jsapi"
 	"github.com/wechatpay-apiv3/wechatpay-go/utils"
 )
 
-type OrdersService struct{}
+type OrdersService struct {
+	userAndOrderMutex *myutils.KeyedMutex
+}
+
+type UserOrderInterface struct {
+	UserID  primitive.ObjectID
+	OrderID primitive.ObjectID
+}
 
 var (
 	ordersService *OrdersService
 	wechatClient  *core.Client
 
 	// TODO: 目前需要等待产品注册微信商户后获得以下三个参数
-	mchID                      string = config.GetConfig().WECHAT.MCHID            // 商户号
-	mchCertificateSerialNumber string = config.GetConfig().WECHAT.MCHCERTSERIALNUM // 商户证书序列号
-	mchAPIv3Key                string = config.GetConfig().WECHAT.MCHAPIV3KEY      // 商户APIv3密钥
+	MchID                      string = config.GetConfig().WECHAT.MCHID            // 商户号
+	MchCertificateSerialNumber string = config.GetConfig().WECHAT.MCHCERTSERIALNUM // 商户证书序列号
+	MchAPIv3Key                string = config.GetConfig().WECHAT.MCHAPIV3KEY      // 商户APIv3密钥
 )
 
 func GetOrdersService() *OrdersService {
@@ -34,6 +46,16 @@ func GetOrdersService() *OrdersService {
 		ordersService = &OrdersService{}
 	}
 	return ordersService
+}
+
+func (ordersService *OrdersService) LockUserAndOrder(userID, orderID primitive.ObjectID) {
+	key := UserOrderInterface{UserID: userID, OrderID: orderID}
+	ordersService.userAndOrderMutex.Lock(key)
+}
+
+func (ordersService *OrdersService) UnlockUserAndOrder(userID, orderID primitive.ObjectID) {
+	key := UserOrderInterface{UserID: userID, OrderID: orderID}
+	ordersService.userAndOrderMutex.Unlock(key)
 }
 
 func GetWechatClient() (client *core.Client, err error) {
@@ -51,8 +73,8 @@ func GetWechatClient() (client *core.Client, err error) {
 	ctx := context.Background()
 	// 初始化wechatClient所需的参数
 	opts := []core.ClientOption{
-		option.WithWechatPayAutoAuthCipher(mchID,
-			mchCertificateSerialNumber, mchPrivateKey, mchAPIv3Key),
+		option.WithWechatPayAutoAuthCipher(MchID,
+			MchCertificateSerialNumber, mchPrivateKey, MchAPIv3Key),
 	}
 	// 建立wechatClient
 	client, err = core.NewClient(ctx, opts...)
@@ -61,16 +83,17 @@ func GetWechatClient() (client *core.Client, err error) {
 }
 
 // 创建一个新订单,将关联的产品作为传入参数
-func (service *OrdersService) NewOrder(product *models.Product) (order *models.Order, err error) {
+func (service *OrdersService) NewOrder(userID primitive.ObjectID, product *models.Product) (order *models.Order, err error) {
 	order = product.InitOrder()
-	_, err = db.GetCollection("orders").InsertOne(context.Background(), order)
+	order.UserID = userID
+	_, err = db.GetCollection("orders").InsertOne(context.TODO(), order)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User) (prepayID *string, statusCode int, err error) {
+func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User) (prepayID string, err error) {
 	appid := config.GetConfig().WECHAT.APPID
 	client, err := GetWechatClient()
 	if err != nil {
@@ -78,12 +101,14 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 	}
 
 	jsapiService := jsapi.JsapiApiService{Client: client}
-	resp, res, err := jsapiService.Prepay(context.TODO(), jsapi.PrepayRequest{
+	resp, _, err := jsapiService.Prepay(context.TODO(), jsapi.PrepayRequest{
 		Appid:       core.String(appid),
-		Mchid:       core.String(mchID),
+		Mchid:       core.String(MchID),
 		Description: core.String(string(order.SKUItem.SKUType)),
 		OutTradeNo:  core.String(order.ID.String()),
 		Attach:      core.String(string(order.Status)),
+		//  微信支付建议订单有效期为5分钟
+		TimeExpire: core.Time(time.Unix(int64(order.CreateAt), 0).Add(5 * time.Minute)),
 
 		// TODO: 需要进一步沟通具体API名称
 		// 回调URL，用以之后微信支付服务端异步通知后端更新订单状态
@@ -98,40 +123,73 @@ func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User
 		},
 	})
 
-	// 微信支付会返回状态码
-	statusCode = res.Response.StatusCode
 	if err != nil {
-		/*
-			switch {
-			case core.IsAPIError(err, "SYSTEM_ERROR"):
-				err = errors.New("系统异常，请用相同参数重新调用")
-			case core.IsAPIError(err, "SIGN_ERROR"):
-				err = errors.New("请检查签名参数和方法是否都符合签名算法要求")
-			case core.IsAPIError(err, "RULE_LIMIT"):
-				err = errors.New("因业务规则限制请求频率")
-			case core.IsAPIError(err, "PARAM_ERROR"):
-				err = errors.New("请检查请求参数")
-			case core.IsAPIError(err, "OUT_TRADE_NO_USED"):
-				err = errors.New("请核实商户订单号是否重复提交")
-			case core.IsAPIError(err, "ORDER_NOT_EXIST"):
-				err = errors.New("请检查订单是否发起过交易")
-			case core.IsAPIError(err, "ORDER_CLOSED"):
-				err = errors.New("当前订单已关闭，请重新下单")
-			case core.IsAPIError(err, "OPENID_MISMATCH"):
-				err = errors.New("请确认openid和appid是否匹配")
-			case core.IsAPIError(err, "NO_AUTH"):
-				err = errors.New("请商户前往申请此接口相关权限")
-			}
-		*/
 		return
 	}
-	prepayID = resp.PrepayId
-	updatePrepay := bson.D{{Key: "$set", Value: bson.M{"prepayID": *prepayID}}}
+
+	prepayID = *resp.PrepayId
+	updatePrepay := bson.D{{Key: "$set", Value: bson.M{"prepayID": prepayID}}}
 	err = db.GetCollection("orders").FindOneAndUpdate(context.TODO(), bson.M{"_id": order.ID}, updatePrepay).Err()
 	return
 }
 
-func (service *OrdersService) GetOrder(order_id string) (order *models.Order, err error) {
+func (service *OrdersService) NotifyOrder(userID primitive.ObjectID, transaction *payments.Transaction) (err error) {
+	_, err = GetWechatClient()
+	if err != nil {
+		return
+	}
+
+	// 处理通知内容
+	orderID, err := primitive.ObjectIDFromHex(*transaction.OutTradeNo)
+	if err != nil {
+		return
+	}
+
+	orderStatus := (*models.OrderStatus)(transaction.TradeState)
+
+	// 1、加锁
+	ordersService.LockUserAndOrder(userID, orderID)
+	defer ordersService.UnlockUserAndOrder(userID, orderID)
+
+	// 2、先查询数据库，防止收集重复信息
+	order, err := ordersService.GetOrder(orderID)
+	if err != nil {
+		return
+	}
+
+	if order.TransactionID == "" {
+		// 重复接受微信支付端的Transaction
+		return
+	}
+
+	fmt.Println(transaction.TransactionId)
+
+	order.TransactionID = *transaction.TransactionId
+	order.TradeTypes = models.TradeType(*transaction.TradeType)
+	order.Status = *orderStatus
+	order.TradeStateDesc = *transaction.TradeStateDesc
+	order.BankType = *transaction.BankType
+	order.Attach = *transaction.Attach
+	order.SuccessTime = *transaction.SuccessTime
+	order.UserID = userID
+	err = copier.Copy(&order.Amount, &transaction.Amount)
+	if err != nil {
+		return
+	}
+	err = copier.Copy(&order.PromotionDetails, &transaction.PromotionDetail)
+	if err != nil {
+		return
+	}
+
+	//4、更新到数据库
+	statement := bson.M{"$set": &order}
+	opts := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+	err = db.GetCollection("order").FindOneAndUpdate(context.TODO(), bson.M{"_id": orderID}, statement, opts).Err()
+	return
+}
+
+func (service *OrdersService) GetOrder(order_id primitive.ObjectID) (order *models.Order, err error) {
 	filter := bson.M{"_id": order_id}
 	order = &models.Order{}
 	err = db.GetCollection("orders").FindOne(context.TODO(), filter).Decode(order)
@@ -143,16 +201,16 @@ func (service *OrdersService) OrderList(orderStatus models.OrderStatus, page int
 	filter := bson.M{}
 
 	//当查询状态为“未支付”时，需要先查询“支付失败”的订单，两个切片拼接起来作为结果（这个if感觉相当炸裂，这样写真的合理吗！！！？？）
-	if orderStatus == models.Unpaid {
+	if orderStatus == models.NOTPAY {
 		//先查询status为PaymentErro（支付失败）
-		filter["status"] = models.PaymentError
+		filter["status"] = models.PAYERROR
 		opts := options.Find().SetLimit(20).SetSkip(20 * page)
 		res1, err1 := db.GetCollection("orders").Find(context.TODO(), filter, opts)
 		if err1 != nil {
 			return
 		}
 		//再查询status为Unpaid（未支付）
-		filter["status"] = models.Unpaid
+		filter["status"] = models.NOTPAY
 		opts2 := options.Find().SetLimit(20).SetSkip(20 * page)
 		res2, err2 := db.GetCollection("orders").Find(context.TODO(), filter, opts2)
 		if err2 != nil {
@@ -197,4 +255,35 @@ func (service *OrdersService) UpdateOrderStatus(orderID primitive.ObjectID, newS
 
 }
 
-//后续还要写的：1、支付订单（调用微信支付的API，同时要修改订单状态）2、创建产品product 3、还有啥呢？？？
+func (service *OrdersService) GetOrderStatus(order *models.Order) (orderStatus *models.OrderStatus, err error) {
+	if err != nil {
+		return
+	}
+	client, err := GetWechatClient()
+	if err != nil {
+		return
+	}
+	jsapiService := jsapi.JsapiApiService{Client: client}
+	resp, _, err := jsapiService.QueryOrderById(context.TODO(), jsapi.QueryOrderByIdRequest{
+		TransactionId: core.String(order.TransactionID),
+		Mchid:         core.String(MchID),
+	})
+	if err != nil {
+		return
+	}
+	orderStatus = (*models.OrderStatus)(resp.TradeState)
+	return
+}
+
+func (service *OrdersService) CancelOrder(order *models.Order) (err error) {
+	client, err := GetWechatClient()
+	if err != nil {
+		return
+	}
+	jsapiService := jsapi.JsapiApiService{Client: client}
+	_, err = jsapiService.CloseOrder(context.TODO(), jsapi.CloseOrderRequest{
+		OutTradeNo: core.String(order.ID.String()),
+		Mchid:      core.String(MchID),
+	})
+	return
+}

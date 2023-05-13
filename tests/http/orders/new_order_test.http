@@ -1,0 +1,7 @@
+POST https://127.0.0.1/api/orders/new
+Content-Type: application/json
+X-Access-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI2NDQwZjg2MGFjMzM4ZjFiYTAyZDZkMTYiLCJSb2xlIjoiUk9MRV9BRE1JTiIsImlzcyI6InRlc3QiLCJleHAiOjE2ODMzNjE2NzZ9.IVeUA_kLqR3DMcZ8KNiQvqltXfzQNLo2syyDPqjDN74
+
+{
+    
+}
