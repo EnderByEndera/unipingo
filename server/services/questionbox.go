@@ -3,12 +3,11 @@ package services
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -206,7 +205,11 @@ func (service *QuestionBoxService) DeleteQuestion(questionID primitive.ObjectID)
 	return
 }
 
-// TODO 对具体内容没有问题，但是不太清楚这个函数的功能，是创建问题文件夹吗？然后labelIDs是在哪里返回的呢？
+/*
+标签（文件夹）模块区域
+*/
+
+// NewLabels 创建多个标签
 func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (newLabels []models.EntityWithName, err error) {
 	// 如果问题不存在标签，则直接退出
 	if labels == nil {
@@ -286,6 +289,67 @@ func (service *QuestionBoxService) QueryLabelFromQuestion(user *models.User, que
 	return
 }
 
+func (service *QuestionBoxService) DeleteLabel(label *models.QuestionLabel) (err error) {
+	err = db.GetCollection("labels").FindOneAndDelete(context.TODO(), bson.M{"_id": label.ID}).Err()
+	return
+}
+
+func (service *QuestionBoxService) UpdateLabelContent(label *models.QuestionLabel) (err error) {
+	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(),
+		bson.M{"_id": label.ID},
+		bson.M{
+			"$set": bson.M{
+				"content":    label.Content,
+				"updateTime": uint64(time.Now().Unix()),
+			}}).Err()
+	return
+}
+
+func (service *QuestionBoxService) AddQuestionInLabel(labelID primitive.ObjectID, question *models.QuestionInLabelInfo) (err error) {
+	filter := bson.M{
+		"_id": labelID,
+	}
+
+	update := bson.M{
+		"$inc": bson.M{
+			"stats.questionNum": 1,
+		},
+		"$addToSet": bson.M{
+			"questions": question,
+		},
+		"$set": bson.M{
+			"updateTime": uint64(time.Now().Unix()),
+		},
+	}
+
+	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	return
+}
+
+func (service *QuestionBoxService) DeleteQuestionFromLabel(labelID primitive.ObjectID, questionID primitive.ObjectID) (err error) {
+	filter := bson.M{
+		"labelID": labelID,
+	}
+
+	update := bson.M{
+		"$pull": bson.M{
+			"questions.questionID": questionID,
+		},
+		"$inc": bson.M{
+			"stats.questionNum": 1,
+		},
+	}
+
+	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	return
+}
+
+/*
+--------------------------------------------------------
+回答模块区域
+*/
+
+// NewAnswer 创建新回答
 func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (docID primitive.ObjectID, err error) {
 	if answer.Content == "" {
 		err = errors.New("该回答没有填写内容")
@@ -333,8 +397,7 @@ func (service *QuestionBoxService) QueryAnswerByID(answerID primitive.ObjectID) 
 	return
 }
 
-
-func (service *AnswerService) DeleteQuestionboxAnswerByID(answerID primitive.ObjectID) (err error) {
+func (service *QuestionBoxService) DeleteQuestionBoxAnswerByID(answerID primitive.ObjectID) (err error) {
 	if answerID == primitive.NilObjectID {
 		err = errors.New("answerID为空")
 		return
@@ -344,7 +407,7 @@ func (service *AnswerService) DeleteQuestionboxAnswerByID(answerID primitive.Obj
 	return
 }
 
-// 获取一个问题对应的所有回答
+// AnswerList 获取一个问题对应的所有回答
 func (service *QuestionBoxService) AnswerList(question *models.QuestionBoxQuestion, page int64, pageNum int64) (answers []*models.QuestionBoxAnswer, err error) {
 	if question == nil {
 		err = errors.New("question为空")
@@ -367,7 +430,7 @@ func (service *QuestionBoxService) AnswerList(question *models.QuestionBoxQuesti
 	return
 }
 
-// 获取当前用户的所有回答（提问箱部分的“我的回答”）
+// MyAnswerList 获取当前用户的所有回答（提问箱部分的“我的回答”）
 func (service *QuestionBoxService) MyAnswerList(user *models.User, page int64, pageNum int64) (answers []*models.QuestionBoxAnswer, err error) {
 	if user == nil {
 		err = errors.New("user为空")
@@ -388,7 +451,7 @@ func (service *QuestionBoxService) MyAnswerList(user *models.User, page int64, p
 		return
 	}
 
-	cur.All(context.TODO(), &answers)
+	err = cur.All(context.TODO(), &answers)
 	return
 }
 
@@ -408,46 +471,5 @@ func (service *QuestionBoxService) UpdateAnswerContent(answer *models.QuestionBo
 		},
 	}
 	err = db.GetCollection("questionboxanswer").FindOneAndUpdate(context.TODO(), filter, update).Err()
-	return
-}
-
-func (service *QuestionBoxService) DeleteQuestionFromLabel(labelID primitive.ObjectID, questionID primitive.ObjectID) (err error) {
-	filter := bson.M{
-		"labelID": labelID,
-	}
-
-	update := bson.M{
-		"$pull": bson.M{
-			"questions.questionID": questionID,
-		},
-		"$inc": bson.M{
-			"stats.questionNum": 1,
-		},
-	}
-
-	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update).Err()
-	return
-}
-
-func (service *QuestionBoxService) DeleteLabel(label *models.QuestionLabel) (err error) {
-	err = db.GetCollection("labels").FindOneAndDelete(context.TODO(), bson.M{"_id": label.ID}).Err()
-	return
-}
-
-func (service *QuestionBoxService) AddQuestionInLabel(labelID primitive.ObjectID, question *models.QuestionInLabelInfo) (err error) {
-	filter := bson.M{
-		"_id": labelID,
-	}
-
-	update := bson.M{
-		"$inc": bson.M{
-			"stats.questionNum": 1,
-		},
-		"$addToSet": bson.M{
-			"questions": question,
-		},
-	}
-
-	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }

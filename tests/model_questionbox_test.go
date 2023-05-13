@@ -83,7 +83,7 @@ func BenchmarkNewQuestionboxAnswer(b *testing.B) {
 	for i := range answers {
 		answer := &models.QuestionBoxAnswer{
 			QuestionID: questionid,
-			UserID: user.ID,
+			UserID:     user.ID,
 			Content:    "这里是回答的内容",
 		}
 		answers[i] = answer
@@ -166,7 +166,8 @@ func BenchmarkMyAnswerList(b *testing.B) {
 
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
-			services.GetQuestionBoxService().MyAnswerList(&user, int64(rand.Int()), int64(rand.Int()))
+			_, err := services.GetQuestionBoxService().MyAnswerList(&user, int64(rand.Int()), int64(rand.Int()))
+			assert.Equal(b, err, nil)
 		}
 	})
 
