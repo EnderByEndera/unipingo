@@ -57,5 +57,7 @@ func TestAddQuestionInLabel(t *testing.T) {
 	err = services.GetQuestionBoxService().AddQuestionInLabel(labelID, questionInfo)
 	assert.Equal(t, err, nil)
 
-	services.GetQuestionBoxService().QueryLabelByID(labelID)
+	label, err := services.GetQuestionBoxService().QueryLabelByID(labelID)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, label.Content, "Hello From World")
 }
