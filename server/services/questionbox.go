@@ -5,6 +5,7 @@ import (
 	"errors"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -114,76 +115,6 @@ func (service *QuestionBoxService) QueryQuestionByID(questionID primitive.Object
 	return
 }
 
-func (service *QuestionBoxService) QuestionList(user *models.User, page int64, pageNum int64) (questions []*models.QuestionBoxQuestion, err error) {
-	if user == nil {
-		err = errors.New("user为空")
-		return
-	}
-
-	filter := bson.M{
-		"userID": user.ID,
-	}
-
-	if page < 0 || pageNum < 0 {
-		err = errors.New("page或pageNum小于0")
-		return
-	}
-	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
-	cur, err := db.GetCollection("questions").Find(context.TODO(), filter, opts)
-	if err != nil {
-		return
-	}
-
-	cur.All(context.TODO(), &questions)
-	return
-}
-
-func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.ObjectID, answer *models.QuestionBoxAnswer) (err error) {
-	// TODO 需要验证问题的school、major和答案的school、major相同吗（如果answer的两个属性来自于question就不用了？）
-	filter := bson.M{
-		"_id": questionID,
-	}
-	// TODO 这个好像把整个answer给赋值了，我看model里面定义questions时answers里面存储的是所有问题的ID
-	update := bson.M{
-		"$push": bson.M{
-			"answers": answer,
-		},
-	}
-	
-	err = db.GetCollection("questions").FindOneAndUpdate(context.TODO(), filter, update).Err()
-	return
-}
-
-// TODO 对具体内容没有问题，但是不太清楚这个函数的功能，是创建问题文件夹吗？然后labelIDs是在哪里返回的呢？
-func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (labelIDs []primitive.ObjectID, err error) {
-	// 如果问题不存在标签，则直接退出
-	if labels == nil {
-		return
-	}
-
-	for _, label := range labels {
-		if label.Content == "" {
-			err = errors.New("部分标签没有描述信息")
-			return
-		}
-
-		filter := bson.M{
-			"userID":  label.UserID,
-			"content": label.Content,
-		}
-		update := bson.D{
-			{Key: "$push", Value: bson.D{{"questions", label.Questions[0]}}}, // 如果该数据库中存在该标签，则将该标签关联的问题添加到数据库中
-			{Key: "$inc", Value: bson.D{{"stats.questionNum", 1}}},           // 如果该数据库中存在该标签，则将该标签对应的问题数量+1
-		}
-		opts := options.FindOneAndUpdate().SetUpsert(true) // 如果不存在该标签，则将该标签添加到数据库中
-		err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update, opts).Err()
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
 func (service *QuestionBoxService) QueryQuestionsFromLabelID(labelID primitive.ObjectID, page, pageNum int64) (questions []*models.QuestionBoxQuestion, err error) {
 	filter := bson.M{
 		"_id": labelID,
@@ -208,7 +139,150 @@ func (service *QuestionBoxService) QueryQuestionsFromLabelID(labelID primitive.O
 		return
 	}
 
-	cur.All(context.TODO(), &questions)
+	err = cur.All(context.TODO(), &questions)
+	return
+}
+
+func (service *QuestionBoxService) QuestionList(user *models.User, page int64, pageNum int64) (questions []*models.QuestionBoxQuestion, err error) {
+	if user == nil {
+		err = errors.New("user为空")
+		return
+	}
+
+	filter := bson.M{
+		"userID": user.ID,
+	}
+
+	if page < 0 || pageNum < 0 {
+		err = errors.New("page或pageNum小于0")
+		return
+	}
+	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
+	cur, err := db.GetCollection("questions").Find(context.TODO(), filter, opts)
+	if err != nil {
+		return
+	}
+
+	err = cur.All(context.TODO(), &questions)
+	return
+}
+
+func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.ObjectID, answer *models.QuestionBoxAnswer) (err error) {
+	// TODO 需要验证问题的school、major和答案的school、major相同吗（如果answer的两个属性来自于question就不用了？）
+	filter := bson.M{
+		"_id": questionID,
+	}
+
+	// TODO 这个好像把整个answer给赋值了，我看model里面定义questions时answers里面存储的是所有问题的ID
+	update := bson.M{
+		"$addToSet": bson.M{
+			"answers": answer,
+		},
+	}
+
+	err = db.GetCollection("questions").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	return
+}
+
+func (service *QuestionBoxService) DeleteAnswerFromQuestion(questionID primitive.ObjectID, answerID primitive.ObjectID) (err error) {
+	return
+}
+
+func (service *QuestionBoxService) DeleteQuestion(questionID primitive.ObjectID) (err error) {
+	err = db.GetCollection("questions").FindOneAndDelete(context.TODO(), bson.M{"_id": questionID}).Err()
+	if err != nil {
+		return
+	}
+
+	update := bson.M{
+		"$inc": bson.M{
+			"stats.questionNum": 1,
+		},
+		"$pull": bson.M{
+			"questions.questionID": questionID,
+		},
+	}
+	_, err = db.GetCollection("labels").UpdateMany(context.TODO(), bson.M{"questions.questionID": questionID}, update)
+	return
+}
+
+// TODO 对具体内容没有问题，但是不太清楚这个函数的功能，是创建问题文件夹吗？然后labelIDs是在哪里返回的呢？
+func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (newLabels []models.EntityWithName, err error) {
+	// 如果问题不存在标签，则直接退出
+	if labels == nil {
+		return
+	}
+
+	for _, label := range labels {
+		if label.Content == "" {
+			err = errors.New("部分标签没有描述信息")
+			return
+		}
+
+		if label.UserID == primitive.NilObjectID {
+			err = errors.New("部分标签不存在用户信息")
+			return
+		}
+
+		filter := bson.M{
+			"userID":  label.UserID,
+			"content": label.Content,
+		}
+
+		err = db.GetCollection("labels").FindOne(context.TODO(), filter).Err()
+		if err != nil {
+			label.Init()
+			res, labelErr := db.GetCollection("labels").InsertOne(context.TODO(), label)
+			if labelErr != nil {
+				err = labelErr
+				return
+			}
+			if labelID, ok := res.InsertedID.(primitive.ObjectID); ok {
+				newLabels = append(newLabels, models.EntityWithName{ID: labelID, Name: label.Content})
+			}
+		}
+		err = nil
+	}
+	return
+}
+
+func (service *QuestionBoxService) QueryLabelByID(labelID primitive.ObjectID) (label *models.QuestionLabel, err error) {
+	return
+}
+
+func (service *QuestionBoxService) QueryLabelsFromUser(user *models.User, page, pageNum int64) (labels []*models.QuestionLabel, err error) {
+	filter := bson.M{
+		"userID": user.ID,
+	}
+
+	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
+
+	cur, err := db.GetCollection("labels").Find(context.TODO(), filter, opts)
+	if err != nil {
+		return
+	}
+
+	err = cur.All(db.GetMongoConn().Context, &labels)
+	return
+}
+
+func (service *QuestionBoxService) QueryLabelFromQuestion(user *models.User, question *models.QuestionBoxQuestion, page, pageNum int64) (labels []*models.QuestionLabel, err error) {
+	filter := bson.M{
+		"userID": user.ID,
+		"questions": bson.M{
+			"$elemMatch": bson.M{
+				"questionID": question.ID,
+			},
+		},
+	}
+
+	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
+	cur, err := db.GetCollection("labels").Find(context.TODO(), filter, opts)
+	if err != nil {
+		return
+	}
+
+	err = cur.All(context.TODO(), &labels)
 	return
 }
 
@@ -334,5 +408,46 @@ func (service *QuestionBoxService) UpdateAnswerContent(answer *models.QuestionBo
 		},
 	}
 	err = db.GetCollection("questionboxanswer").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	return
+}
+
+func (service *QuestionBoxService) DeleteQuestionFromLabel(labelID primitive.ObjectID, questionID primitive.ObjectID) (err error) {
+	filter := bson.M{
+		"labelID": labelID,
+	}
+
+	update := bson.M{
+		"$pull": bson.M{
+			"questions.questionID": questionID,
+		},
+		"$inc": bson.M{
+			"stats.questionNum": 1,
+		},
+	}
+
+	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	return
+}
+
+func (service *QuestionBoxService) DeleteLabel(label *models.QuestionLabel) (err error) {
+	err = db.GetCollection("labels").FindOneAndDelete(context.TODO(), bson.M{"_id": label.ID}).Err()
+	return
+}
+
+func (service *QuestionBoxService) AddQuestionInLabel(labelID primitive.ObjectID, question *models.QuestionInLabelInfo) (err error) {
+	filter := bson.M{
+		"_id": labelID,
+	}
+
+	update := bson.M{
+		"$inc": bson.M{
+			"stats.questionNum": 1,
+		},
+		"$addToSet": bson.M{
+			"questions": question,
+		},
+	}
+
+	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }

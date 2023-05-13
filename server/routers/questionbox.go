@@ -422,3 +422,164 @@ func UpdateAnswerContent(c *gin.Context) {
 	})
 
 }
+
+func NewLabels(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	user, err := services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	labels := make([]*models.QuestionLabel, 0)
+	err = c.BindJSON(&labels)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	for index := range labels {
+		labels[index].UserID = user.ID
+	}
+
+	labelIDs, err := services.GetQuestionBoxService().NewLabels(labels)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"labels": labelIDs,
+	})
+}
+
+func GetLabelsFromUser(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	user, err := services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	req := new(models.GetLabelsFromUserRequest)
+	err = c.BindJSON(req)
+
+	labels, err := services.GetQuestionBoxService().QueryLabelsFromUser(user, req.Page, req.PageNum)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"labels": labels,
+	})
+}
+
+func GetLabelFromQuestion(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	user, err := services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	type GetLabelFromQuestionReq struct {
+		QuestionID primitive.ObjectID
+		Page       int64
+		PageNum    int64
+	}
+
+	req := new(GetLabelFromQuestionReq)
+	err = c.BindJSON(req)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	question, err := services.GetQuestionBoxService().QueryQuestionByID(req.QuestionID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+	}
+
+	labels, err := services.GetQuestionBoxService().QueryLabelFromQuestion(user, question, req.Page, req.PageNum)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"labels": labels,
+	})
+}
+
+func DeleteLabel(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	_, err = services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	label := new(models.QuestionLabel)
+	err = c.BindJSON(&label.ID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+	}
+
+	err = services.GetQuestionBoxService().DeleteLabel(label)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"delete": true,
+	})
+}
+
+func UpdateLabel(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	_, err = services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	label := new(models.QuestionLabel)
+	err = c.BindJSON(&label)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+	}
+
+	err = services.GetQuestionBoxService().UpdateLabelContent(label)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"update": true,
+	})
+}

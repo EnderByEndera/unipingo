@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"melodie-site/server/auth"
 	"melodie-site/server/models"
 	"melodie-site/server/routers"
@@ -44,6 +45,7 @@ func TlsHandler() gin.HandlerFunc {
 
 		// If there was an error, do not continue.
 		if err != nil {
+			c.Abort()
 			return
 		}
 
@@ -93,11 +95,17 @@ func Cors() gin.HandlerFunc {
 func initServer() {
 	_, err := services.GetAuthService().GetUserByName("admin")
 	if err != nil {
-		services.GetAuthService().InternalAddUser("admin", "123456", models.RoleAdmin, nil)
+		_, err = services.GetAuthService().InternalAddUser("admin", "123456", models.RoleAdmin, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	_, err = services.GetAuthService().GetUserByName("demo-unpaid-user")
 	if err != nil {
-		services.GetAuthService().InternalAddUser("demo-unpaid-user", "123456", models.RoleUnpaidUser, nil)
+		_, err = services.GetAuthService().InternalAddUser("demo-unpaid-user", "123456", models.RoleUnpaidUser, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -155,7 +163,7 @@ func RunServer() {
 		orderRouter.POST("/getstatus", authMiddleware(), routers.GetOrderStatus)
 		orderRouter.POST("/cancel", authMiddleware(), routers.CancelOrder)
 	}
-	
+
 	questionBoxRouter := r.Group("/api/questionbox")
 	{
 		qbQuestionRouter := questionBoxRouter.Group("/question")
@@ -170,6 +178,14 @@ func RunServer() {
 				qbqUpdateRouter.POST("/major", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
 			}
 		}
+		qbLabelRouter := questionBoxRouter.Group("/label")
+		{
+			qbLabelRouter.POST("/new", authMiddleware(), routers.NewLabels)
+			qbLabelRouter.POST("/getfromuser", authMiddleware(), routers.GetLabelsFromUser)
+			qbLabelRouter.POST("/getfromquestion", authMiddleware(), routers.GetLabelFromQuestion)
+			qbLabelRouter.POST("/delete", authMiddleware(), routers.DeleteLabel)
+			qbLabelRouter.POST("/update", authMiddleware(), routers.UpdateLabel)
+		}
 		qbAnswerRouter := questionBoxRouter.Group("/answer")
 		{
 			qbAnswerRouter.POST("/new", authMiddleware(), routers.NewQuestionBoxAnswer)
@@ -183,5 +199,8 @@ func RunServer() {
 		}
 	}
 
-	r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
+	err := r.RunTLS(":8787", "cert/9325061_wechatapi.houzhanyi.com.pem", "cert/9325061_wechatapi.houzhanyi.com.key")
+	if err != nil {
+		log.Fatal(err)
+	}
 }
