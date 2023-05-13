@@ -17,16 +17,17 @@ type MongoConnection struct {
 var mongoConn *MongoConnection
 
 func InitMongo() *MongoConnection {
-	cli, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:10200"))
+	cli, err := mongo.NewClient(options.Client().
+		ApplyURI("mongodb://localhost:10200").
+		SetTimeout(10 * time.Second))
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = cli.Connect(ctx)
+	err = cli.Connect(context.TODO())
 	if err != nil {
 		log.Fatal(err)
 	}
-	mongoConnection := MongoConnection{Client: cli, Context: ctx}
+	mongoConnection := MongoConnection{Client: cli}
 
 	return &mongoConnection
 }

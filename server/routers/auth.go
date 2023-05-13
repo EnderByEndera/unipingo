@@ -10,6 +10,7 @@ import (
 	"melodie-site/server/config"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
+	"melodie-site/server/svcerror"
 	"melodie-site/server/utils"
 	"net/http"
 	"net/url"
@@ -32,7 +33,7 @@ type WechatLoginRequest struct {
 	Code string `json:"code"`
 }
 
-// 相关文档见：
+// WechatLoginResponse 相关文档见：
 // https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html
 type WechatLoginResponse struct {
 	OpenID     string `json:"openid"`
@@ -116,7 +117,8 @@ func LoginWechat(c *gin.Context) {
 	fmt.Println(urlPath) // https://httpbin.org/get?age=23&name=zhaofan
 	resp, err := http.Get(urlPath)
 	if err != nil {
-		c.String(http.StatusUnauthorized, "无效Wechat请求")
+		c.Error(svcerror.New(http.StatusUnauthorized, errors.New("无效Wechat请求")))
+		return
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -131,10 +133,10 @@ func LoginWechat(c *gin.Context) {
 		return
 	}
 	// 如果OpenID为空，说明js_code无效
-	if wechatLoginResponse.OpenID == "" {
-		c.String(http.StatusUnauthorized, "无效Wechat请求")
-		return
-	}
+	//if wechatLoginResponse.OpenID == "" {
+	//	c.Error(svcerror.New(http.StatusUnauthorized, errors.New("无效Wechat请求")))
+	//	return
+	//}
 	user, err := services.GetAuthService().GetUserByWechatOpenID(wechatLoginResponse.OpenID)
 	if err != nil {
 		err := services.GetAuthService().CreateWechatUser(&models.User{

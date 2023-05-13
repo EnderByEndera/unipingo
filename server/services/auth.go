@@ -87,7 +87,7 @@ func (service *AuthService) InternalAddUser(userName, password, role string, pro
 		err = errors.New("user existed!")
 		return
 	}
-	_, err = db.GetCollection("user").InsertOne(context.TODO(), &user)
+	_, err = db.GetCollection("user").InsertOne(context.TODO(), &user, options.InsertOne())
 	if err != nil {
 		return
 	}

@@ -15,7 +15,7 @@ type PersonalInfo struct {
 	Situation string `bson:"situation" json:"situation,omitempty"` // 具体情况
 }
 
-// 提问箱问题
+// QuestionBoxQuestion 提问箱问题
 type QuestionBoxQuestion struct {
 	ID          primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
 	UserID      primitive.ObjectID   `bson:"userID" json:"userID"`           // 提问人ID
@@ -49,11 +49,10 @@ type QuestionInLabelInfo struct {
 }
 
 type LabelStats struct {
-	ReadNum     uint32 `bson:"readNum" json:"readNum"`
 	QuestionNum uint32 `bson:"questionNum" json:"questionNum"`
 }
 
-// 提问箱标签
+// QuestionLabel 提问箱标签
 type QuestionLabel struct {
 	ID         primitive.ObjectID    `bson:"_id,omitempty" json:"id"`
 	UserID     primitive.ObjectID    `bson:"userID" json:"userID"`
@@ -64,7 +63,11 @@ type QuestionLabel struct {
 	Questions  []QuestionInLabelInfo `bson:"questions" json:"questions"`
 }
 
-// 提问箱回答
+func (ql *QuestionLabel) Init() {
+	ql.CreateTime = uint64(time.Now().Unix())
+}
+
+// QuestionBoxAnswer 提问箱回答
 type QuestionBoxAnswer struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID     primitive.ObjectID `bson:"userID" json:"userID"`         // 回答用户ID
@@ -75,9 +78,14 @@ type QuestionBoxAnswer struct {
 	Statistics AnswerStats        `bson:"answerStats" json:"answerStats"` // 回答相关的数据
 	CreateTime uint64             `bson:"createTime" json:"createTime"`
 	UpdateTime uint64             `bson:"updateTime" json:"updateTime"`
-	Respondant PersonalInfo       `bson:"respondant" json:"respondant"` // 回答者相关数据
+	Respondent PersonalInfo       `bson:"respondent" json:"respondent"` // 回答者相关数据
 }
 
 func (answer *QuestionBoxAnswer) Init() {
 	answer.CreateTime = uint64(time.Now().Unix())
+}
+
+type GetLabelsFromUserRequest struct {
+	Page    int64 `json:"page"`
+	PageNum int64 `json:"pageNum"`
 }
