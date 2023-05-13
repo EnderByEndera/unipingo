@@ -42,7 +42,17 @@ func (service *QuestionBoxService) NewQuestion(question *models.QuestionBoxQuest
 		err = errors.New("该问题没有填写标题或描述")
 		return
 	}
-	//如果已经存在  用户要到哪里去看呢（大学和专业那里展示的问题应该都是写死的，和提问箱无关）提问箱的问题只有参与者知道，其他用户都看不到
+	/* TODO :
+	1、个人感觉这里是不是不用判定问题是否相同，因为提问箱应该是向具体的人或者特定群体提问的。
+	即使问题一样，提问者可能选择的提问对象也会不同。
+	其次，产品那边应该还暂时没有给出“如何看到其他人提问的问题”的设计。
+	师兄您的意思可能是 如果问题已经存在就不能提问了，用户需要搜索看别人问过的问题和答案
+	再者，如果后续提问是需要付费的，感觉每次提问都创建一个question，这样会方便order那边保存唯一的questionID
+	2、questionExists这个函数中：（school、major、title都一样就确认问题已存在），
+	个人感觉对同一个title所提出的具体问题也可能不一样的（即content不同），
+	那这样是不是也不能算作是一个question呢？
+	（我这里是将title理解为主题，就是类似“学习环境”，“宿舍环境”之类的）
+	*/
 	if questionExists(question) {
 		err = errors.New("该问题已存在")
 		return
@@ -53,6 +63,7 @@ func (service *QuestionBoxService) NewQuestion(question *models.QuestionBoxQuest
 		return
 	}
 	docID = res.InsertedID.(primitive.ObjectID)
+	// TODO  我看见现在的figma上又更新了提问表单的内容，上边显示在提问的时候可以选择文件夹，所以感觉可能还要加点什么
 	return
 }
 
@@ -128,11 +139,11 @@ func (service *QuestionBoxService) QuestionList(user *models.User, page int64, p
 }
 
 func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.ObjectID, answer *models.QuestionBoxAnswer) (err error) {
-	// TODO 需要验证问题的school、major和答案的school、major相同吗（如果answer的两个属性来自于question就不用了吧）
+	// TODO 需要验证问题的school、major和答案的school、major相同吗（如果answer的两个属性来自于question就不用了？）
 	filter := bson.M{
 		"_id": questionID,
 	}
-	//这个好像把answer所有属性值给answers属性了
+	// TODO 这个好像把整个answer给赋值了，我看model里面定义questions时answers里面存储的是所有问题的ID
 	update := bson.M{
 		"$push": bson.M{
 			"answers": answer,
@@ -143,6 +154,7 @@ func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.Obje
 	return
 }
 
+// TODO 对具体内容没有问题，但是不太清楚这个函数的功能，是创建问题文件夹吗？然后labelIDs是在哪里返回的呢？
 func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (labelIDs []primitive.ObjectID, err error) {
 	// 如果问题不存在标签，则直接退出
 	if labels == nil {
@@ -208,12 +220,20 @@ func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (
 	answer.Init()
 
 	questionID := answer.QuestionID
-	//和question关联
-	//TODO：如果后面insertOne插入错误，AddAnswerToQuestion函数需要回滚
+	//验证question存在
 	_, err = questionBoxService.QueryQuestionByID(questionID)
 	if err != nil {
 		return
 	}
+	/*TODO：这里是将answer和question关联，调用了一下师兄的AddAnswerToQuestion函数。
+
+	这里InsertOne和AddAnswerToQuestion感觉类似一个事务，一个执行失败另一个也要回滚；比如
+	这里如果已经执行InsertOne成功，但AddAnswerToQuestion执行失败，那这个回答即使存入数据库也是
+	没有用的数据了（没有和question绑定，后续用questionID就查不出来）。
+
+	如果这种没用的数据没有什么影响 或者这两个函数执行的成功率都很高以至于没用的数据很少，
+	或许就这样写着？只让前端提示用户“提交回答失败”就行？
+	*/
 	res, err := db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
 	if err != nil {
 		return
@@ -250,7 +270,7 @@ func (service *AnswerService) DeleteQuestionboxAnswerByID(answerID primitive.Obj
 	return
 }
 
-// 这个函数是列出一个问题的所有回答
+// 获取一个问题对应的所有回答
 func (service *QuestionBoxService) AnswerList(question *models.QuestionBoxQuestion, page int64, pageNum int64) (answers []*models.QuestionBoxAnswer, err error) {
 	if question == nil {
 		err = errors.New("question为空")
@@ -273,7 +293,7 @@ func (service *QuestionBoxService) AnswerList(question *models.QuestionBoxQuesti
 	return
 }
 
-// 这个函数列出我的回答列表
+// 获取当前用户的所有回答（提问箱部分的“我的回答”）
 func (service *QuestionBoxService) MyAnswerList(user *models.User, page int64, pageNum int64) (answers []*models.QuestionBoxAnswer, err error) {
 	if user == nil {
 		err = errors.New("user为空")

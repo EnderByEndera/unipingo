@@ -65,6 +65,7 @@ type QuestionLabel struct {
 }
 
 // 提问箱回答
+// TODO school和major两个属性从哪里获得呢,是从对应的question那里得到的吗  ）
 type QuestionBoxAnswer struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID     primitive.ObjectID `bson:"userID" json:"userID"`         // 回答用户ID
