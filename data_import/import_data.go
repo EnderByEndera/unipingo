@@ -22,9 +22,10 @@ func ImportMajors() {
 		// majorProps
 
 		major := models.Major{
-			Code:     fmt.Sprintf("%+v", majorProps["专业代码"]),
-			Name:     fmt.Sprintf("%+v", majorProps["专业名称"]),
-			Category: fmt.Sprintf("%+v", majorProps["学位授予门类"]),
+			Code:       fmt.Sprintf("%+v", majorProps["专业代码"]),
+			Name:       fmt.Sprintf("%+v", majorProps["专业名称"]),
+			FirstLevel: fmt.Sprintf("%+v", majorProps["门类"]),
+			Category:   fmt.Sprintf("%+v", majorProps["大类"]),
 		}
 		fmt.Printf("%d %+v\n", i, major)
 
@@ -216,6 +217,6 @@ func ImportHEIs() {
 
 func main() {
 	ImportMajors()
-	ImportHEIs()
-	fmt.Println("数据库初始化成功！")
+	// ImportHEIs()
+	// fmt.Println("数据库初始化成功！")
 }
