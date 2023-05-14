@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// 个人展示内容
+// PersonalInfo 个人展示内容
 type PersonalInfo struct {
 	CEEPlace  string `bson:"CEEPlace" json:"CEEPlace"`             // 高考所在地
 	Subject   string `bson:"subject" json:"subject"`               // 高考科目
@@ -49,11 +49,10 @@ type QuestionInLabelInfo struct {
 }
 
 type LabelStats struct {
-	ReadNum     uint32 `bson:"readNum" json:"readNum"`
 	QuestionNum uint32 `bson:"questionNum" json:"questionNum"`
 }
 
-// 提问箱标签
+// QuestionLabel 提问箱标签
 type QuestionLabel struct {
 	ID         primitive.ObjectID    `bson:"_id,omitempty" json:"id"`
 	UserID     primitive.ObjectID    `bson:"userID" json:"userID"`
@@ -65,7 +64,9 @@ type QuestionLabel struct {
 }
 
 func (ql *QuestionLabel) Init() {
-	ql.CreateTime = uint64(time.Now().Unix())
+	if ql.CreateTime == 0 {
+		ql.CreateTime = uint64(time.Now().Unix())
+	}
 }
 
 // QuestionBoxAnswer 提问箱回答

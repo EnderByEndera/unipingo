@@ -3,7 +3,7 @@ Content-Type: application/json
 X-Access-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI2NDQwZjg2MGFjMzM4ZjFiYTAyZDZkMTYiLCJSb2xlIjoiUk9MRV9BRE1JTiIsImlzcyI6InRlc3QiLCJleHAiOjE2ODQwMTM0NzZ9.yKrGiX1xOqAsyPQdehEG-gJQve2M4hsXy-SSIHpDtx8
 
 {
-    "title": "New Question 5",
+    "title": "New Question 6",
     "description": "This is a new question",
     "major": {
         "id": "6440f79e5d0bbef01247b8dd",

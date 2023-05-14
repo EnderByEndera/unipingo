@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewLabel(t *testing.T) {
-	labels := make([]*models.QuestionLabel, 3)
+	labels := make([]*models.QuestionLabel, 10)
 	for index := range labels {
 		labels[index] = new(models.QuestionLabel)
 		labels[index].Content = "Hello World"
@@ -42,7 +42,7 @@ func TestUpdateLabelContent(t *testing.T) {
 }
 
 func TestAddQuestionInLabel(t *testing.T) {
-	questionID, _ := primitive.ObjectIDFromHex("64536b800a3da36ef0a12770")
+	questionID, _ := primitive.ObjectIDFromHex("6460db3791ffc5d0aa7c26c2")
 	question, err := services.GetQuestionBoxService().QueryQuestionByID(questionID)
 	assert.Equal(t, err, nil)
 
@@ -52,7 +52,7 @@ func TestAddQuestionInLabel(t *testing.T) {
 		HasRead: false,
 	}
 
-	labelID, _ := primitive.ObjectIDFromHex("645fec942a221656eac2680b")
+	labelID, _ := primitive.ObjectIDFromHex("6460f86589eedf93c155df38")
 
 	err = services.GetQuestionBoxService().AddQuestionInLabel(labelID, questionInfo)
 	assert.Equal(t, err, nil)
@@ -60,4 +60,5 @@ func TestAddQuestionInLabel(t *testing.T) {
 	label, err := services.GetQuestionBoxService().QueryLabelByID(labelID)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, label.Content, "Hello From World")
+	assert.Equal(t, label.Statistics.QuestionNum, uint32(2))
 }

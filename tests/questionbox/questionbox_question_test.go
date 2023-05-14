@@ -21,7 +21,7 @@ func getOneQuestion(t *testing.T) *models.QuestionBoxQuestion {
 	assert.Equal(t, err, nil)
 	question := &models.QuestionBoxQuestion{
 		UserID:      user.ID,
-		Title:       "New Question",
+		Title:       "My Question",
 		Description: "This is a new question",
 		School: models.EntityWithName{
 			ID:   school.ID,
@@ -71,7 +71,7 @@ func BenchmarkNewQuestion(b *testing.B) {
 		question.Title = strconv.Itoa(i)
 		questions[i] = question
 	}
-// TODO  这里为什么要设定一下36呢，然后后边bench测试时有的没有设置这个值
+	// TODO  这里为什么要设定一下36呢，然后后边bench测试时有的没有设置这个值
 	b.SetParallelism(36)
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
@@ -83,10 +83,10 @@ func BenchmarkNewQuestion(b *testing.B) {
 			}
 		}
 	})
-/*TODO 
-1、我这里想的是前面创建question时属性应该要传递userID，这样后面QuestionList才能查出来（不然这里QuestionList返回的应该是空数组吧?）
-2、我运行一次，数据库question增加1000，为什么不是设定的是10000呢？
-*/
+	/*TODO
+	  1、我这里想的是前面创建question时属性应该要传递userID，这样后面QuestionList才能查出来（不然这里QuestionList返回的应该是空数组吧?）
+	  2、我运行一次，数据库question增加1000，为什么不是设定的是10000呢？
+	*/
 	user, err := services.GetAuthService().GetUserByName("admin")
 	assert.Equal(b, err, nil)
 	questions, err = services.GetQuestionBoxService().QuestionList(&user, 0, 20)
@@ -176,4 +176,15 @@ func BenchmarkUpdateQuestion(b *testing.B) {
 			assert.Equal(b, err, nil)
 		}
 	})
+}
+
+func TestDeleteQuestion(t *testing.T) {
+	questionID, err := primitive.ObjectIDFromHex("6460db3791ffc5d0aa7c26c2")
+	assert.Equal(t, err, nil)
+
+	err = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	assert.Equal(t, err, nil)
+
+	err = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	assert.NotEqual(t, err, nil)
 }
