@@ -21,7 +21,7 @@ func getOneQuestion(t *testing.T) *models.QuestionBoxQuestion {
 	assert.Equal(t, err, nil)
 	question := &models.QuestionBoxQuestion{
 		UserID:      user.ID,
-		Title:       "New Question",
+		Title:       "My Question",
 		Description: "This is a new question",
 		School: models.EntityWithName{
 			ID:   school.ID,
@@ -173,4 +173,15 @@ func BenchmarkUpdateQuestion(b *testing.B) {
 			assert.Equal(b, err, nil)
 		}
 	})
+}
+
+func TestDeleteQuestion(t *testing.T) {
+	questionID, err := primitive.ObjectIDFromHex("6460db3791ffc5d0aa7c26c2")
+	assert.Equal(t, err, nil)
+
+	err = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	assert.Equal(t, err, nil)
+
+	err = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	assert.NotEqual(t, err, nil)
 }

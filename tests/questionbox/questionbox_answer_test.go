@@ -174,9 +174,9 @@ func BenchmarkMyAnswerList(b *testing.B) {
 }
 
 func BenchmarkAnswerList(b *testing.B) {
-	Questionid, _ := primitive.ObjectIDFromHex("645df98ee933a87982169266")
+	questionId, _ := primitive.ObjectIDFromHex("645df98ee933a87982169266")
 	question := &models.QuestionBoxQuestion{
-		ID: Questionid,
+		ID: questionId,
 	}
 
 	b.RunParallel(func(p *testing.PB) {
