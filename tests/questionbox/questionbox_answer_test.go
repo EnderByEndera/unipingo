@@ -181,7 +181,8 @@ func BenchmarkAnswerList(b *testing.B) {
 
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
-			services.GetQuestionBoxService().AnswerList(question, int64(rand.Int()), int64(rand.Int()))
+			_, err := services.GetQuestionBoxService().AnswerList(question, int64(rand.Int()), int64(rand.Int()))
+			assert.Equal(b, err, nil)
 		}
 	})
 

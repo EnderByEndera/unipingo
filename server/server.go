@@ -192,7 +192,7 @@ func RunServer() {
 			qbAnswerRouter.GET("/query",authMiddleware(),routers.QueryAnswerByID)
 			qbAnswerRouter.GET("/list", authMiddleware(),routers.GetAnswerList)
 			qbAnswerRouter.GET("/mylist",authMiddleware(),routers.GetMyAnswerList)
-			qbqUpdateRouter := qbQuestionRouter.Group("/update")
+			qbqUpdateRouter := qbAnswerRouter.Group("/update")
 			{
 				qbqUpdateRouter.POST("/content",authMiddleware(),routers.UpdateAnswerContent)
 			}

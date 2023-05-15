@@ -1,0 +1,8 @@
+POST https://192.168.17.163:8787/api/questionbox/answer/update/content
+Content-Type: application/json
+X-Access-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI2NDI4ZTc4MWNhZmJhYmQ1ZDcxN2ZmN2IiLCJSb2xlIjoiUk9MRV9BRE1JTiIsImlzcyI6InRlc3QiLCJleHAiOjE2ODQzMjQ4NDd9.cS7Fm-oMG_gXi94ak5OPEFE-h3WM9MewxepC4I0HsDo
+
+{
+    "id": "64622c9f8e347421fecaa9bc",
+    "content": "update answer1"
+}

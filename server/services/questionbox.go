@@ -42,17 +42,7 @@ func (service *QuestionBoxService) NewQuestion(question *models.QuestionBoxQuest
 		err = errors.New("该问题没有填写标题或描述")
 		return
 	}
-	/* TODO :
-	1、个人感觉这里是不是不用判定问题是否相同，因为提问箱应该是向具体的人或者特定群体提问的。
-	即使问题一样，提问者可能选择的提问对象也会不同。
-	其次，产品那边应该还暂时没有给出“如何看到其他人提问的问题”的设计。
-	师兄您的意思可能是 如果问题已经存在就不能提问了，用户需要搜索看别人问过的问题和答案
-	再者，如果后续提问是需要付费的，感觉每次提问都创建一个question，这样会方便order那边保存唯一的questionID
-	2、questionExists这个函数中：（school、major、title都一样就确认问题已存在），
-	个人感觉对同一个title所提出的具体问题也可能不一样的（即content不同），
-	那这样是不是也不能算作是一个question呢？
-	（我这里是将title理解为主题，就是类似“学习环境”，“宿舍环境”之类的）
-	*/
+	// TODO 关于questionexits是否要存在
 	if questionExists(question) {
 		err = errors.New("该问题已存在")
 		return
@@ -63,7 +53,6 @@ func (service *QuestionBoxService) NewQuestion(question *models.QuestionBoxQuest
 		return
 	}
 	docID = res.InsertedID.(primitive.ObjectID)
-	// TODO  我看见现在的figma上又更新了提问表单的内容，上边显示在提问的时候可以选择文件夹，所以感觉可能还要加点什么
 	return
 }
 
@@ -166,16 +155,14 @@ func (service *QuestionBoxService) QuestionList(user *models.User, page int64, p
 	return
 }
 
-func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.ObjectID, answer *models.QuestionBoxAnswer) (err error) {
-	// TODO 需要验证问题的school、major和答案的school、major相同吗（如果answer的两个属性来自于question就不用了？）
+func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.ObjectID, answerID primitive.ObjectID) (err error) {
 	filter := bson.M{
 		"_id": questionID,
 	}
 
-	// TODO 这个好像把整个answer给赋值了，我看model里面定义questions时answers里面存储的是所有问题的ID
 	update := bson.M{
 		"$addToSet": bson.M{
-			"answers": answer,
+			"answers": answerID,
 		},
 	}
 
@@ -363,21 +350,13 @@ func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (
 	if err != nil {
 		return
 	}
-	/*TODO：这里是将answer和question关联，调用了一下师兄的AddAnswerToQuestion函数。
-
-	这里InsertOne和AddAnswerToQuestion感觉类似一个事务，一个执行失败另一个也要回滚；比如
-	这里如果已经执行InsertOne成功，但AddAnswerToQuestion执行失败，那这个回答即使存入数据库也是
-	没有用的数据了（没有和question绑定，后续用questionID就查不出来）。
-
-	如果这种没用的数据没有什么影响 或者这两个函数执行的成功率都很高以至于没用的数据很少，
-	或许就这样写着？只让前端提示用户“提交回答失败”就行？
-	*/
+	// TODO 改为原子操作
 	res, err := db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
 	if err != nil {
 		return
 	}
 	docID = res.InsertedID.(primitive.ObjectID)
-	err = questionBoxService.AddAnswerToQuestion(questionID, answer)
+	err = questionBoxService.AddAnswerToQuestion(questionID, docID)
 	if err != nil {
 		err = errors.New("回答和问题关联失败")
 		return

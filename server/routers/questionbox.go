@@ -225,35 +225,40 @@ func NewQuestionBoxAnswer(c *gin.Context) {
 		return
 	}
 
-	// 校验学校或专业ID是否正确
-	if req.School.ID != primitive.NilObjectID {
-		hei, err := services.GetHEIService().GetHEI(req.School.ID)
-		if err != nil {
-			c.Error(svcerror.New(http.StatusBadRequest, err))
-			return
-		}
-		if hei.Name != req.School.Name {
-			err = errors.New("HEI名称和ID对应失败")
-			c.Error(svcerror.New(http.StatusBadRequest, err))
-			return
-		}
-	} else if req.Major.ID != primitive.NilObjectID {
-		major, err := services.GetMajorService().GetMajor(req.Major.ID)
-		if err != nil {
-			c.Error(svcerror.New(http.StatusBadRequest, err))
-			return
-		}
-		if major.Name != req.Major.Name {
-			err = errors.New("专业名称和ID对应失败")
-			c.Error(svcerror.New(http.StatusBadRequest, err))
-			return
-		}
-	} else {
-		// 学校和专业必须二选一，否则Request失败
-		err = errors.New("学校和专业ID均为空")
+	// 校验学校或专业ID是否存在且正确
+	if req.School.ID == primitive.NilObjectID {
+		err = errors.New("HEI的ID为空")
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
+	if req.Major.ID == primitive.NilObjectID {
+		err = errors.New("major的ID为空")
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	hei, err := services.GetHEIService().GetHEI(req.School.ID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+	if hei.Name != req.School.Name {
+		err = errors.New("HEI名称和ID对应失败")
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	major, err := services.GetMajorService().GetMajor(req.Major.ID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+	if major.Name != req.Major.Name {
+		err = errors.New("专业名称和ID对应失败")
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
 	userID, err := utils.GetUserID(c)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusUnauthorized, err))
@@ -304,13 +309,13 @@ func QueryAnswerByID(c *gin.Context) {
 		return
 	}
 
-	question, err := services.GetQuestionBoxService().QueryQuestionByID(answerID)
+	answer, err := services.GetQuestionBoxService().QueryAnswerByID(answerID)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusInternalServerError, err))
 		return
 	}
 
-	c.JSON(http.StatusOK, question)
+	c.JSON(http.StatusOK, answer)
 }
 
 func GetAnswerList(c *gin.Context) {
@@ -405,7 +410,7 @@ func UpdateAnswerContent(c *gin.Context) {
 		return
 	}
 
-	answer := &models.QuestionBoxAnswer{}
+	answer := new(models.QuestionBoxAnswer)
 	if err = c.ShouldBind(answer); err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
