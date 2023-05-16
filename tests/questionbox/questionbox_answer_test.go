@@ -19,7 +19,7 @@ import (
 func getOneAnswer(t *testing.T) *models.QuestionBoxAnswer {
 	admin, err := services.GetAuthService().GetUserByName("admin")
 	assert.Equal(t, err, nil)
-	Questionid, _ := primitive.ObjectIDFromHex("645df98ee933a87982169266")
+	Questionid, _ := primitive.ObjectIDFromHex("6462ffd6ae024b214bff2b39")
 	school, err := services.GetHEIService().GetHEIByName("华东师范大学")
 	assert.Equal(t, err, nil)
 	major, err := services.GetMajorService().GetMajorByName("软件工程")
@@ -125,6 +125,14 @@ func BenchmarkGetAnswer(b *testing.B) {
 			assert.NotEqual(b, answer.ID, primitive.NilObjectID)
 		}
 	})
+}
+func TestDeleteQuestionBoxAnswerByID(t *testing.T) {
+	answerID, err := primitive.ObjectIDFromHex("646327adcbef972b23403d65")
+	assert.Equal(t, err, nil)
+	err= services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
+	assert.Equal(t, err, nil)
+	err= services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
+	assert.NotEqual(t, err, nil)
 }
 
 func TestGetAnswerList(t *testing.T) {

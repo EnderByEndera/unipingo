@@ -418,21 +418,25 @@ func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (
 	//验证question存在
 	_, err = questionBoxService.QueryQuestionByID(questionID)
 	if err != nil {
+		err = errors.New("问题不存在")
 		return
 	}
-	// TODO 改为原子操作
-	res, err := db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
-	if err != nil {
+	
+	transaction := func(sessCtx mongo.SessionContext) (res interface{}, err error) {
+		result, err := db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
+		if err != nil {
+			return
+		}
+		docID = result.InsertedID.(primitive.ObjectID)
+		err = questionBoxService.AddAnswerToQuestion(questionID, docID)
+		if err != nil {
+			err = errors.New("回答和问题关联失败")
+			return
+		}
 		return
 	}
-	docID = res.InsertedID.(primitive.ObjectID)
-	err = questionBoxService.AddAnswerToQuestion(questionID, docID)
-	if err != nil {
-		err = errors.New("回答和问题关联失败")
-		return
-	}
-
-	return
+	_, sessErr := db.GetMongoConn().UseSession(nil, transaction)
+	return docID, sessErr
 }
 
 func (service *QuestionBoxService) QueryAnswerByID(answerID primitive.ObjectID) (answer *models.QuestionBoxAnswer, err error) {
@@ -451,11 +455,28 @@ func (service *QuestionBoxService) DeleteQuestionBoxAnswerByID(answerID primitiv
 		err = errors.New("answerID为空")
 		return
 	}
-	filter := bson.M{"_id": answerID}
-	_, err = db.GetCollection("questionboxanswer").DeleteOne(context.TODO(), filter)
 
-	// TODO: 这里还需要将每个question里面的这个回答ID给删除掉才可以，MongoDB不支持外键就是这么麻烦 :-)
-	return
+	transaction := func(sessCtx mongo.SessionContext) (res interface{}, err error) {
+		answer := new(models.QuestionBoxAnswer)
+		filter := bson.M{"_id": answerID}
+		err = db.GetCollection("questionboxanswer").FindOneAndDelete(context.TODO(), filter).Decode(answer)
+		if err != nil {
+			return
+		}
+
+		update := bson.M{
+			"$pull": bson.M{
+				"answers": answerID,
+			},
+			"$set": bson.M{
+				"updateTime": uint64(time.Now().Unix()),
+			},
+		}
+		db.GetCollection("questions").UpdateMany(context.TODO(), bson.M{"questionID": answer.QuestionID}, update)
+		return
+	}
+	_, sessErr := db.GetMongoConn().UseSession(nil, transaction)
+	return sessErr
 }
 
 // AnswerList 获取一个问题对应的所有回答

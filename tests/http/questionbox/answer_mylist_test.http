@@ -1,2 +1,2 @@
-GET https://192.168.17.163:8787/api/questionbox/answer/mylist?page=0&pageNum=20
+GET https://192.168.17.164:8787/api/questionbox/answer/mylist?page=1&pageNum=0
 X-Access-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI2NDI4ZTc4MWNhZmJhYmQ1ZDcxN2ZmN2IiLCJSb2xlIjoiUk9MRV9BRE1JTiIsImlzcyI6InRlc3QiLCJleHAiOjE2ODQzMjQ4NDd9.cS7Fm-oMG_gXi94ak5OPEFE-h3WM9MewxepC4I0HsDo
