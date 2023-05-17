@@ -16,6 +16,7 @@ import (
 // @host 127.0.0.1:8787
 // @BasePath /api
 // @query.collection.format multi
+// @schemes https
 func main() {
 	server.RunServer()
 }

@@ -24,6 +24,297 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/questionbox/label/new": {
+            "post": {
+                "description": "新建多个问题标签（文件夹）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox"
+                ],
+                "summary": "新建问题标签（文件夹）接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "新建问题标签（文件夹）请求",
+                        "name": "newLabelsReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.NewLabelsReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "新建问题标签（文件夹）响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.NewLabelsRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/label/user/get": {
+            "get": {
+                "description": "根据当前用户获取当前用户的所有标签（文件夹）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox",
+                    "label"
+                ],
+                "summary": "根据用户获取标签（文件夹）接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "标签（文件夹）页码",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "标签（文件夹）每页包含个数",
+                        "name": "pageNum",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取用户对应标签（文件夹）响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.GetLabelsFromUserRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/question/description/update": {
+            "post": {
+                "description": "更新某问题的描述信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox"
+                ],
+                "summary": "更新问题描述接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "更新问题描述请求",
+                        "name": "updateQuestionDescriptionReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateQuestionDescriptionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新问题描述响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateQuestionDescriptionRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/question/list": {
+            "get": {
+                "description": "查询某用户的所有问题",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox"
+                ],
+                "summary": "用户问题列表查询接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "查询页数",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "一页需要查询的问题数量",
+                        "name": "pageNum",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "用户对应问题响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.QueryQuestionListRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/question/major/update": {
+            "post": {
+                "description": "更新某问题的询问学校或专业",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox"
+                ],
+                "summary": "更新问题学校或专业接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "更新问题学校或专业请求",
+                        "name": "updateQuestionSchoolOrMajorReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateQuestionSchoolOrMajorReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新问题学校或专业响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateQuestionSchoolOrMajorRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
         "/questionbox/question/new": {
             "post": {
                 "description": "通过提问表单，在数据库中新增一个问题",
@@ -39,12 +330,19 @@ const docTemplate = `{
                 "summary": "新增一个问题",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "新增问题请求",
                         "name": "newQuestionReq",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.NewQuestionReq"
+                            "$ref": "#/definitions/types.NewQuestionReq"
                         }
                     }
                 ],
@@ -52,17 +350,133 @@ const docTemplate = `{
                     "200": {
                         "description": "新增问题响应“",
                         "schema": {
-                            "$ref": "#/definitions/models.NewQuestionRes"
+                            "$ref": "#/definitions/types.NewQuestionRes"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
                         "schema": {
                             "$ref": "#/definitions/svcerror.SvcErr"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/question/query": {
+            "get": {
+                "description": "根据ID查询一个问题",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox"
+                ],
+                "summary": "问题ID查询接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "问题ID",
+                        "name": "question_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ID对应问题响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.QueryQuestionByIDRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/question/school/update": {
+            "post": {
+                "description": "更新某问题的询问学校或专业",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox"
+                ],
+                "summary": "更新问题学校或专业接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "更新问题学校或专业请求",
+                        "name": "updateQuestionSchoolOrMajorReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateQuestionSchoolOrMajorReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新问题学校或专业响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateQuestionSchoolOrMajorRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
                         "schema": {
                             "$ref": "#/definitions/svcerror.SvcErr"
                         }
@@ -83,7 +497,190 @@ const docTemplate = `{
                 }
             }
         },
-        "models.NewQuestionReq": {
+        "models.LabelStats": {
+            "type": "object",
+            "properties": {
+                "questionNum": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.PersonalInfo": {
+            "type": "object",
+            "properties": {
+                "CEEPlace": {
+                    "description": "高考所在地",
+                    "type": "string"
+                },
+                "age": {
+                    "description": "年龄",
+                    "type": "integer"
+                },
+                "gender": {
+                    "description": "性别",
+                    "type": "string"
+                },
+                "situation": {
+                    "description": "具体情况",
+                    "type": "string"
+                },
+                "subject": {
+                    "description": "高考科目",
+                    "type": "string"
+                }
+            }
+        },
+        "models.QuestionBoxQuestion": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "description": "该问题下所有的回答",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "createTime": {
+                    "type": "integer"
+                },
+                "description": {
+                    "description": "问题描述",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "major": {
+                    "description": "所提问专业的ID",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.EntityWithName"
+                        }
+                    ]
+                },
+                "questioner": {
+                    "description": "提问者相关数据",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.PersonalInfo"
+                        }
+                    ]
+                },
+                "school": {
+                    "description": "所提问学校的ID",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.EntityWithName"
+                        }
+                    ]
+                },
+                "title": {
+                    "description": "问题标题",
+                    "type": "string"
+                },
+                "updateTime": {
+                    "type": "integer"
+                },
+                "userID": {
+                    "description": "提问人ID",
+                    "type": "string"
+                }
+            }
+        },
+        "models.QuestionInLabelInfo": {
+            "type": "object",
+            "properties": {
+                "hasRead": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "questionID": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.QuestionLabel": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createTime": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.QuestionInLabelInfo"
+                    }
+                },
+                "stats": {
+                    "description": "问题标签相关的数据",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.LabelStats"
+                        }
+                    ]
+                },
+                "updateTime": {
+                    "type": "integer"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "svcerror.SvcErr": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.GetLabelsFromUserRes": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.QuestionLabel"
+                    }
+                }
+            }
+        },
+        "types.NewLabelsReq": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.QuestionLabel"
+                    }
+                }
+            }
+        },
+        "types.NewLabelsRes": {
+            "type": "object",
+            "properties": {
+                "labelIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "types.NewQuestionReq": {
             "type": "object",
             "properties": {
                 "description": {
@@ -120,49 +717,66 @@ const docTemplate = `{
                 }
             }
         },
-        "models.NewQuestionRes": {
+        "types.NewQuestionRes": {
             "type": "object",
             "properties": {
-                "docID": {
+                "questionID": {
                     "description": "新增问题ID",
                     "type": "string"
                 }
             }
         },
-        "models.PersonalInfo": {
+        "types.QueryQuestionByIDRes": {
             "type": "object",
             "properties": {
-                "CEEPlace": {
-                    "description": "高考所在地",
-                    "type": "string"
-                },
-                "age": {
-                    "description": "年龄",
-                    "type": "integer"
-                },
-                "gender": {
-                    "description": "性别",
-                    "type": "string"
-                },
-                "situation": {
-                    "description": "具体情况",
-                    "type": "string"
-                },
-                "subject": {
-                    "description": "高考科目",
-                    "type": "string"
+                "question": {
+                    "$ref": "#/definitions/models.QuestionBoxQuestion"
                 }
             }
         },
-        "svcerror.SvcErr": {
+        "types.QueryQuestionListRes": {
             "type": "object",
             "properties": {
-                "code": {
+                "next_page": {
                     "type": "integer"
                 },
-                "data": {},
-                "msg": {
-                    "type": "string"
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.QuestionBoxQuestion"
+                    }
+                }
+            }
+        },
+        "types.UpdateQuestionDescriptionReq": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "$ref": "#/definitions/models.QuestionBoxQuestion"
+                }
+            }
+        },
+        "types.UpdateQuestionDescriptionRes": {
+            "type": "object",
+            "properties": {
+                "update": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "types.UpdateQuestionSchoolOrMajorReq": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "$ref": "#/definitions/models.QuestionBoxQuestion"
+                }
+            }
+        },
+        "types.UpdateQuestionSchoolOrMajorRes": {
+            "type": "object",
+            "properties": {
+                "update": {
+                    "type": "boolean"
                 }
             }
         }
@@ -174,7 +788,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "0.0.1",
 	Host:             "127.0.0.1:8787",
 	BasePath:         "/api",
-	Schemes:          []string{},
+	Schemes:          []string{"https"},
 	Title:            "UniPingo Backend",
 	Description:      "This is the backend for UniPingo application",
 	InfoInstanceName: "swagger",

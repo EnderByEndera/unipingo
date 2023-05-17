@@ -7,7 +7,124 @@ definitions:
       name:
         type: string
     type: object
-  models.NewQuestionReq:
+  models.LabelStats:
+    properties:
+      questionNum:
+        type: integer
+    type: object
+  models.PersonalInfo:
+    properties:
+      CEEPlace:
+        description: 高考所在地
+        type: string
+      age:
+        description: 年龄
+        type: integer
+      gender:
+        description: 性别
+        type: string
+      situation:
+        description: 具体情况
+        type: string
+      subject:
+        description: 高考科目
+        type: string
+    type: object
+  models.QuestionBoxQuestion:
+    properties:
+      answers:
+        description: 该问题下所有的回答
+        items:
+          type: string
+        type: array
+      createTime:
+        type: integer
+      description:
+        description: 问题描述
+        type: string
+      id:
+        type: string
+      major:
+        allOf:
+        - $ref: '#/definitions/models.EntityWithName'
+        description: 所提问专业的ID
+      questioner:
+        allOf:
+        - $ref: '#/definitions/models.PersonalInfo'
+        description: 提问者相关数据
+      school:
+        allOf:
+        - $ref: '#/definitions/models.EntityWithName'
+        description: 所提问学校的ID
+      title:
+        description: 问题标题
+        type: string
+      updateTime:
+        type: integer
+      userID:
+        description: 提问人ID
+        type: string
+    type: object
+  models.QuestionInLabelInfo:
+    properties:
+      hasRead:
+        type: boolean
+      name:
+        type: string
+      questionID:
+        type: string
+    type: object
+  models.QuestionLabel:
+    properties:
+      content:
+        type: string
+      createTime:
+        type: integer
+      id:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/models.QuestionInLabelInfo'
+        type: array
+      stats:
+        allOf:
+        - $ref: '#/definitions/models.LabelStats'
+        description: 问题标签相关的数据
+      updateTime:
+        type: integer
+      userID:
+        type: string
+    type: object
+  svcerror.SvcErr:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  types.GetLabelsFromUserRes:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/models.QuestionLabel'
+        type: array
+    type: object
+  types.NewLabelsReq:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/models.QuestionLabel'
+        type: array
+    type: object
+  types.NewLabelsRes:
+    properties:
+      labelIDs:
+        items:
+          type: string
+        type: array
+    type: object
+  types.NewQuestionReq:
     properties:
       description:
         description: 问题描述
@@ -28,37 +145,45 @@ definitions:
         description: 问题标题
         type: string
     type: object
-  models.NewQuestionRes:
+  types.NewQuestionRes:
     properties:
-      docID:
+      questionID:
         description: 新增问题ID
         type: string
     type: object
-  models.PersonalInfo:
+  types.QueryQuestionByIDRes:
     properties:
-      CEEPlace:
-        description: 高考所在地
-        type: string
-      age:
-        description: 年龄
-        type: integer
-      gender:
-        description: 性别
-        type: string
-      situation:
-        description: 具体情况
-        type: string
-      subject:
-        description: 高考科目
-        type: string
+      question:
+        $ref: '#/definitions/models.QuestionBoxQuestion'
     type: object
-  svcerror.SvcErr:
+  types.QueryQuestionListRes:
     properties:
-      code:
+      next_page:
         type: integer
-      data: {}
-      msg:
-        type: string
+      questions:
+        items:
+          $ref: '#/definitions/models.QuestionBoxQuestion'
+        type: array
+    type: object
+  types.UpdateQuestionDescriptionReq:
+    properties:
+      question:
+        $ref: '#/definitions/models.QuestionBoxQuestion'
+    type: object
+  types.UpdateQuestionDescriptionRes:
+    properties:
+      update:
+        type: boolean
+    type: object
+  types.UpdateQuestionSchoolOrMajorReq:
+    properties:
+      question:
+        $ref: '#/definitions/models.QuestionBoxQuestion'
+    type: object
+  types.UpdateQuestionSchoolOrMajorRes:
+    properties:
+      update:
+        type: boolean
     type: object
 host: 127.0.0.1:8787
 info:
@@ -73,34 +198,312 @@ info:
   title: UniPingo Backend
   version: 0.0.1
 paths:
+  /questionbox/label/new:
+    post:
+      description: 新建多个问题标签（文件夹）
+      parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
+      - description: 新建问题标签（文件夹）请求
+        in: body
+        name: newLabelsReq
+        required: true
+        schema:
+          $ref: '#/definitions/types.NewLabelsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 新建问题标签（文件夹）响应
+          schema:
+            $ref: '#/definitions/types.NewLabelsRes'
+        "400":
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: 服务器内部问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 新建问题标签（文件夹）接口
+      tags:
+      - questionbox
+  /questionbox/label/user/get:
+    get:
+      description: 根据当前用户获取当前用户的所有标签（文件夹）
+      parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
+      - description: 标签（文件夹）页码
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: 标签（文件夹）每页包含个数
+        in: query
+        name: pageNum
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取用户对应标签（文件夹）响应
+          schema:
+            $ref: '#/definitions/types.GetLabelsFromUserRes'
+        "400":
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: 服务器内部问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 根据用户获取标签（文件夹）接口
+      tags:
+      - questionbox
+      - label
+  /questionbox/question/description/update:
+    post:
+      description: 更新某问题的描述信息
+      parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
+      - description: 更新问题描述请求
+        in: body
+        name: updateQuestionDescriptionReq
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateQuestionDescriptionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新问题描述响应
+          schema:
+            $ref: '#/definitions/types.UpdateQuestionDescriptionRes'
+        "400":
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: 服务器内部问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 更新问题描述接口
+      tags:
+      - questionbox
+  /questionbox/question/list:
+    get:
+      description: 查询某用户的所有问题
+      parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
+      - description: 查询页数
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: 一页需要查询的问题数量
+        in: query
+        name: pageNum
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户对应问题响应
+          schema:
+            $ref: '#/definitions/types.QueryQuestionListRes'
+        "400":
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: 服务器内部问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 用户问题列表查询接口
+      tags:
+      - questionbox
+  /questionbox/question/major/update:
+    post:
+      description: 更新某问题的询问学校或专业
+      parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
+      - description: 更新问题学校或专业请求
+        in: body
+        name: updateQuestionSchoolOrMajorReq
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateQuestionSchoolOrMajorReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新问题学校或专业响应
+          schema:
+            $ref: '#/definitions/types.UpdateQuestionSchoolOrMajorRes'
+        "400":
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: 服务器内部问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 更新问题学校或专业接口
+      tags:
+      - questionbox
   /questionbox/question/new:
     post:
       consumes:
       - application/json
       description: 通过提问表单，在数据库中新增一个问题
       parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
       - description: 新增问题请求
         in: body
         name: newQuestionReq
         required: true
         schema:
-          $ref: '#/definitions/models.NewQuestionReq'
+          $ref: '#/definitions/types.NewQuestionReq'
       produces:
       - application/json
       responses:
         "200":
           description: 新增问题响应“
           schema:
-            $ref: '#/definitions/models.NewQuestionRes'
+            $ref: '#/definitions/types.NewQuestionRes'
         "400":
-          description: Bad Request
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
           schema:
             $ref: '#/definitions/svcerror.SvcErr'
         "500":
-          description: Internal Server Error
+          description: 服务器内部问题
           schema:
             $ref: '#/definitions/svcerror.SvcErr'
       summary: 新增一个问题
       tags:
       - questionbox
+  /questionbox/question/query:
+    get:
+      description: 根据ID查询一个问题
+      parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
+      - description: 问题ID
+        in: query
+        name: question_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID对应问题响应
+          schema:
+            $ref: '#/definitions/types.QueryQuestionByIDRes'
+        "400":
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: 服务器内部问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 问题ID查询接口
+      tags:
+      - questionbox
+  /questionbox/question/school/update:
+    post:
+      description: 更新某问题的询问学校或专业
+      parameters:
+      - description: JWT Token
+        in: header
+        name: x-access-token
+        required: true
+        type: string
+      - description: 更新问题学校或专业请求
+        in: body
+        name: updateQuestionSchoolOrMajorReq
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateQuestionSchoolOrMajorReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新问题学校或专业响应
+          schema:
+            $ref: '#/definitions/types.UpdateQuestionSchoolOrMajorRes'
+        "400":
+          description: 请求格式问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "401":
+          description: 用户认证失败
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: 服务器内部问题
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 更新问题学校或专业接口
+      tags:
+      - questionbox
+schemes:
+- https
 swagger: "2.0"

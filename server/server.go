@@ -181,10 +181,10 @@ func RunServer() {
 		qbLabelRouter := questionBoxRouter.Group("/label")
 		{
 			qbLabelRouter.POST("/new", authMiddleware(), routers.NewLabels)
-			qbLabelRouter.POST("/user/get", authMiddleware(), routers.GetLabelsFromUser)
-			qbLabelRouter.POST("/question/get", authMiddleware(), routers.GetLabelFromQuestion)
+			qbLabelRouter.GET("/user/get", authMiddleware(), routers.GetLabelsFromUser)
+			qbLabelRouter.POST("/question/get", authMiddleware(), routers.GetLabelsFromQuestion)
 			qbLabelRouter.POST("/delete", authMiddleware(), routers.DeleteLabel)
-			qbLabelRouter.POST("/update", authMiddleware(), routers.UpdateLabel)
+			qbLabelRouter.POST("/content/update", authMiddleware(), routers.UpdateLabelContent)
 		}
 		qbAnswerRouter := questionBoxRouter.Group("/answer")
 		{
@@ -192,10 +192,7 @@ func RunServer() {
 			qbAnswerRouter.GET("/query", authMiddleware(), routers.QueryAnswerByID)
 			qbAnswerRouter.GET("/list", authMiddleware(), routers.GetAnswerList)
 			qbAnswerRouter.GET("/mylist", authMiddleware(), routers.GetMyAnswerList)
-			qbqUpdateRouter := qbQuestionRouter.Group("/update")
-			{
-				qbqUpdateRouter.POST("/content", authMiddleware(), routers.UpdateAnswerContent)
-			}
+			qbAnswerRouter.POST("/content/update", authMiddleware(), routers.UpdateAnswerContent)
 		}
 	}
 
