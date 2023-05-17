@@ -3,6 +3,7 @@ package routers
 import (
 	"encoding/json"
 	"errors"
+	"melodie-site/server/routers/types"
 
 	"melodie-site/server/models"
 	"melodie-site/server/services"
@@ -15,15 +16,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// NewQuestion 新增问题接口
+// @summary 新增一个问题
+// @description 通过提问表单，在数据库中新增一个问题
+// @tags questionbox,question
+// @param x-access-token header string true "JWT Token"
+// @param newQuestionReq body types.NewQuestionReq true "新增问题请求"
+// @accept application/json
+// @produce application/json
+// @success 200 {object} types.NewQuestionRes "新增问题响应“
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/question/new [post]
 func NewQuestion(c *gin.Context) {
-	data, err := c.GetRawData()
-	if err != nil {
-		c.Error(svcerror.New(http.StatusBadRequest, err))
-		return
-	}
-
-	newQuestionReq := new(models.NewQuestionReq)
-	err = json.Unmarshal(data, newQuestionReq)
+	newQuestionReq := new(types.NewQuestionReq)
+	err := c.ShouldBindJSON(newQuestionReq)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
@@ -61,7 +69,7 @@ func NewQuestion(c *gin.Context) {
 
 	userID, err := utils.GetUserID(c)
 	if err != nil {
-		c.Error(err)
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
 		return
 	}
 	// 校验userID是否有效
@@ -86,11 +94,21 @@ func NewQuestion(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"docID": docID,
-	})
+	c.JSON(http.StatusOK, types.NewQuestionRes{QuestionID: docID})
 }
 
+// QueryQuestionByID 问题ID查询接口
+// @summary 问题ID查询接口
+// @description 根据ID查询一个问题
+// @tags questionbox,question
+// @param x-access-token header string true "JWT Token"
+// @param question_id query string true "问题ID"
+// @produce application/json
+// @success 200 {object} types.QueryQuestionByIDRes "ID对应问题响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/question/query [get]
 func QueryQuestionByID(c *gin.Context) {
 	questionID, err := primitive.ObjectIDFromHex(c.Query("question_id"))
 	if err != nil {
@@ -116,9 +134,24 @@ func QueryQuestionByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, question)
+	c.JSON(http.StatusOK, types.QueryQuestionByIDRes{
+		Question: question,
+	})
 }
 
+// QueryQuestionList 用户问题列表查询接口
+// @summary 用户问题列表查询接口
+// @description 查询某用户的所有问题
+// @tags questionbox,question
+// @param x-access-token header string true "JWT Token"
+// @param page query uint64 true "查询页数"
+// @param pageNum query uint64 true "一页需要查询的问题数量"
+// @produce application/json
+// @success 200 {object} types.QueryQuestionListRes "用户对应问题响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/question/list [get]
 func QueryQuestionList(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
@@ -144,15 +177,30 @@ func QueryQuestionList(c *gin.Context) {
 		return
 	}
 
-	questions, err := services.GetQuestionBoxService().QuestionList(user, int64(page), int64(pageNum))
+	questions, err := services.GetQuestionBoxService().QueryQuestionsFromUser(user, int64(page), int64(pageNum))
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	c.JSON(http.StatusOK, questions)
+	c.JSON(http.StatusOK, types.QueryQuestionListRes{
+		Questions: questions,
+		NextPage:  page + 1,
+	})
 }
 
+// UpdateQuestionDescription 更新问题描述接口
+// @summary 更新问题描述接口
+// @description 更新某问题的描述信息
+// @tags questionbox,question
+// @param x-access-token header string true "JWT Token"
+// @param updateQuestionDescriptionReq body types.UpdateQuestionDescriptionReq true "更新问题描述请求"
+// @produce application/json
+// @success 200 {object} types.UpdateQuestionDescriptionRes "更新问题描述响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/question/description/update [post]
 func UpdateQuestionDescription(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
@@ -166,23 +214,36 @@ func UpdateQuestionDescription(c *gin.Context) {
 		return
 	}
 
-	question := new(models.QuestionBoxQuestion)
-	if err = c.ShouldBind(question); err != nil {
+	questionReq := new(types.UpdateQuestionDescriptionReq)
+	if err = c.ShouldBindJSON(questionReq); err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	err = services.GetQuestionBoxService().UpdateQuestionDescription(question)
+	err = services.GetQuestionBoxService().UpdateQuestionDescription(questionReq.Question)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"update": true,
+	c.JSON(http.StatusOK, types.UpdateQuestionDescriptionRes{
+		Update: true,
 	})
 }
 
+// UpdateQuestionSchoolOrMajor 更新问题学校或专业接口
+// @summary 更新问题学校或专业接口
+// @description 更新某问题的询问学校或专业
+// @tags questionbox,question
+// @param x-access-token header string true "JWT Token"
+// @param updateQuestionSchoolOrMajorReq body types.UpdateQuestionSchoolOrMajorReq true "更新问题学校或专业请求"
+// @produce application/json
+// @success 200 {object} types.UpdateQuestionSchoolOrMajorRes "更新问题学校或专业响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/question/school/update [post]
+// @router /questionbox/question/major/update [post]
 func UpdateQuestionSchoolOrMajor(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
@@ -195,19 +256,19 @@ func UpdateQuestionSchoolOrMajor(c *gin.Context) {
 		return
 	}
 
-	question := new(models.QuestionBoxQuestion)
-	if err = c.ShouldBind(question); err != nil {
+	req := new(types.UpdateQuestionSchoolOrMajorReq)
+	if err = c.ShouldBind(req); err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	if err = services.GetQuestionBoxService().UpdateQuestionSchoolOrMajor(question); err != nil {
+	if err = services.GetQuestionBoxService().UpdateQuestionSchoolOrMajor(req.Question); err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"update": true,
+	c.JSON(http.StatusOK, types.UpdateQuestionSchoolOrMajorRes{
+		Update: true,
 	})
 }
 
@@ -428,6 +489,18 @@ func UpdateAnswerContent(c *gin.Context) {
 
 }
 
+// NewLabels 新建问题标签（文件夹）接口
+// @summary 新建问题标签（文件夹）接口
+// @description 新建多个问题标签（文件夹）
+// @tags questionbox,label
+// @param x-access-token header string true "JWT Token"
+// @param newLabelsReq body types.NewLabelsReq true "新建问题标签（文件夹）请求"
+// @produce application/json
+// @success 200 {object} types.NewLabelsRes "新建问题标签（文件夹）响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/label/new [post]
 func NewLabels(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
@@ -441,28 +514,41 @@ func NewLabels(c *gin.Context) {
 		return
 	}
 
-	labels := make([]*models.QuestionLabel, 0)
-	err = c.BindJSON(&labels)
+	req := new(types.NewLabelsReq)
+	err = c.ShouldBindJSON(req)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	for index := range labels {
-		labels[index].UserID = user.ID
+	for index := range req.Labels {
+		req.Labels[index].UserID = user.ID
 	}
 
-	labelIDs, err := services.GetQuestionBoxService().NewLabels(labels)
+	labelIDs, err := services.GetQuestionBoxService().NewLabels(req.Labels)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"labels": labelIDs,
+	c.JSON(http.StatusOK, types.NewLabelsRes{
+		LabelIDs: labelIDs,
 	})
 }
 
+// GetLabelsFromUser 根据用户获取标签（文件夹）接口
+// @summary 根据用户获取标签（文件夹）接口
+// @description 根据当前用户获取当前用户的所有标签（文件夹）
+// @tags questionbox,label
+// @param x-access-token header string true "JWT Token"
+// @param page query uint64 true "标签（文件夹）页码"
+// @param pageNum query uint64 true "标签（文件夹）每页包含个数"
+// @produce application/json
+// @success 200 {object} types.GetLabelsFromUserRes "获取用户对应标签（文件夹）响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/label/user/get [get]
 func GetLabelsFromUser(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
@@ -476,21 +562,44 @@ func GetLabelsFromUser(c *gin.Context) {
 		return
 	}
 
-	req := new(models.GetLabelsFromUserRequest)
-	err = c.BindJSON(req)
-
-	labels, err := services.GetQuestionBoxService().QueryLabelsFromUser(user, req.Page, req.PageNum)
+	page, err := strconv.Atoi(c.Query("page"))
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"labels": labels,
+	pageNum, err := strconv.Atoi(c.Query("pageNum"))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	labels, err := services.GetQuestionBoxService().QueryLabelsFromUser(user, int64(page), int64(pageNum))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, types.GetLabelsFromUserRes{
+		Labels: labels,
 	})
 }
 
-func GetLabelFromQuestion(c *gin.Context) {
+// GetLabelsFromQuestion 根据问题获取标签（文件夹）接口
+// @summary 根据问题获取标签（文件夹）接口
+// @description 根据当前问题获取对应的所有标签（文件夹）
+// @tags questionbox,label
+// @param x-access-token header string true "JWT Token"
+// @param page query uint64 true "标签（文件夹）页码"
+// @param pageNum query uint64 true "标签（文件夹）每页包含个数"
+// @param getLabelsFromQuestionReq body types.GetLabelsFromQuestionReq true "所搜寻问题ID"
+// @produce application/json
+// @success 200 {object} types.GetLabelsFromQuestionRes "获取问题对应标签（文件夹）响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/label/question/get [post]
+func GetLabelsFromQuestion(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusUnauthorized, err))
@@ -503,14 +612,8 @@ func GetLabelFromQuestion(c *gin.Context) {
 		return
 	}
 
-	type GetLabelFromQuestionReq struct {
-		QuestionID primitive.ObjectID
-		Page       int64
-		PageNum    int64
-	}
-
-	req := new(GetLabelFromQuestionReq)
-	err = c.BindJSON(req)
+	req := new(types.GetLabelsFromQuestionReq)
+	err = c.ShouldBindJSON(req)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
@@ -519,18 +622,43 @@ func GetLabelFromQuestion(c *gin.Context) {
 	question, err := services.GetQuestionBoxService().QueryQuestionByID(req.QuestionID)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
 	}
 
-	labels, err := services.GetQuestionBoxService().QueryLabelFromQuestion(user, question, req.Page, req.PageNum)
+	page, err := strconv.Atoi(c.Query("page"))
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+	pageNum, err := strconv.Atoi(c.Query("pageNum"))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"labels": labels,
+	labels, err := services.GetQuestionBoxService().QueryLabelsFromQuestion(user, question, int64(page), int64(pageNum))
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, types.GetLabelsFromQuestionRes{
+		Labels: labels,
 	})
 }
 
+// DeleteLabel 删除标签（文件夹）接口
+// @summary 删除标签（文件夹）接口
+// @description 根据标签（文件夹）ID删除对应的标签（文件夹）
+// @tags questionbox,label
+// @param x-access-token header string true "JWT Token"
+// @param page query string true "标签（文件夹）ID"
+// @produce application/json
+// @success 200 {object} types.DeleteLabelRes "获取问题对应标签（文件夹）响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/label/question/delete [post]
 func DeleteLabel(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
@@ -544,23 +672,38 @@ func DeleteLabel(c *gin.Context) {
 		return
 	}
 
-	label := new(models.QuestionLabel)
-	err = c.BindJSON(&label.ID)
+	labelID := primitive.ObjectID{}
+	err = c.ShouldBindJSON(&labelID)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
 	}
 
-	err = services.GetQuestionBoxService().DeleteLabel(label)
+	err = services.GetQuestionBoxService().DeleteLabel(labelID)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"delete": true,
+	c.JSON(http.StatusOK, types.DeleteLabelRes{
+		LabelID: labelID,
 	})
 }
 
-func UpdateLabel(c *gin.Context) {
+// UpdateLabelContent 更新标签（文件夹）接口
+// @summary 更新标签（文件夹）接口
+// @description 更新标签（文件夹）的标题（内容）
+// @tags questionbox,label
+// @param x-access-token header string true "JWT Token"
+// @param page query string true "标签（文件夹）ID"
+// @param updateLabelContentReq body types.UpdateLabelContentReq true "标签（文件夹）更新内容请求"
+// @produce application/json
+// @success 200 {object} types.UpdateLabelContentRes "标签（文件夹）更新响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/label/content/update [post]
+func UpdateLabelContent(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusUnauthorized, err))
@@ -573,18 +716,25 @@ func UpdateLabel(c *gin.Context) {
 		return
 	}
 
-	label := new(models.QuestionLabel)
-	err = c.BindJSON(&label)
+	req := new(types.UpdateLabelContentReq)
+	err = c.ShouldBindJSON(req)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	label := &models.QuestionLabel{
+		ID:      req.LabelID,
+		Content: req.Content,
 	}
 
 	err = services.GetQuestionBoxService().UpdateLabelContent(label)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"update": true,
+	c.JSON(http.StatusOK, types.UpdateLabelContentRes{
+		LabelID: label.ID,
 	})
 }

@@ -1,0 +1,7 @@
+POST https://127.0.0.1:8787/api/questionbox/label/delete
+Content-Type: application/json
+X-Access-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI2NDYwZGIyMzUzZDNmNWMwNDU2NDc1ZTYiLCJSb2xlIjoiUk9MRV9BRE1JTiIsImlzcyI6InRlc3QiLCJleHAiOjE2ODQzMTIzNDZ9.p7gUG6U811gKLwIxnqL5d7taZE0xq-rSo8AcifEwhLc
+
+{
+  "id": "6461e853ad4b91166e10013e"
+}

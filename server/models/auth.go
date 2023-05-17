@@ -120,12 +120,12 @@ type UserPublicInfo struct {
 	FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
 }
 
-func (u *User) MarshalBSON() ([]byte, error) {
-	if u.EducationalBackground == nil {
-		u.EducationalBackground = make([]EduBGItem, 0)
+func (user *User) MarshalBSON() ([]byte, error) {
+	if user.EducationalBackground == nil {
+		user.EducationalBackground = make([]EduBGItem, 0)
 	}
 	type _u User
-	return bson.Marshal((*_u)(u))
+	return bson.Marshal((*_u)(user))
 }
 
 func (user *User) ToPublicInfo() UserPublicInfo {
