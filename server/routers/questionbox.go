@@ -98,7 +98,7 @@ func NewQuestion(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.NewQuestionRes{DocID: docID})
+	c.JSON(http.StatusOK, models.NewQuestionRes{QuestionID: docID})
 }
 
 func QueryQuestionByID(c *gin.Context) {

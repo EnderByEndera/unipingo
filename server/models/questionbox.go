@@ -43,7 +43,7 @@ type NewQuestionReq struct {
 }
 
 type NewQuestionRes struct {
-	DocID primitive.ObjectID `json:"docID"` // 新增问题ID
+	QuestionID primitive.ObjectID `json:"questionID"` // 新增问题ID
 }
 
 type QuestionInLabelInfo struct {

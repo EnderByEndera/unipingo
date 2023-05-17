@@ -60,7 +60,7 @@ definitions:
       msg:
         type: string
     type: object
-host: 127.0.0.1
+host: 127.0.0.1:8787
 info:
   contact:
     email: enderbybear@foxmail.com
