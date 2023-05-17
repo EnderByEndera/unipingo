@@ -15,6 +15,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// NewQuestion 新增问题接口
+// @Summary 新增一个问题
+// @Schemes
+// @Description 通过提问表单，在数据库中新增一个问题
+// @Tags questionbox
+// @Param newQuestionReq body models.NewQuestionReq true "新增问题请求"
+// @Accept application/json
+// @Produce application/json
+// @Success 200 {object} models.NewQuestionRes "新增问题响应“
+// @Failure 400 {object} svcerror.SvcErr
+// @Failure 500 {object} svcerror.SvcErr
+// @Router /questionbox/question/new [post]
 func NewQuestion(c *gin.Context) {
 	data, err := c.GetRawData()
 	if err != nil {
@@ -86,9 +98,7 @@ func NewQuestion(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"docID": docID,
-	})
+	c.JSON(http.StatusOK, models.NewQuestionRes{DocID: docID})
 }
 
 func QueryQuestionByID(c *gin.Context) {
@@ -144,7 +154,7 @@ func QueryQuestionList(c *gin.Context) {
 		return
 	}
 
-	questions, err := services.GetQuestionBoxService().QuestionList(user, int64(page), int64(pageNum))
+	questions, err := services.GetQuestionBoxService().QueryQuestionsFromUser(user, int64(page), int64(pageNum))
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
@@ -516,7 +526,7 @@ func GetLabelFromQuestion(c *gin.Context) {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 	}
 
-	labels, err := services.GetQuestionBoxService().QueryLabelFromQuestion(user, question, req.Page, req.PageNum)
+	labels, err := services.GetQuestionBoxService().QueryLabelsFromQuestion(user, question, req.Page, req.PageNum)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 	}
@@ -540,14 +550,16 @@ func DeleteLabel(c *gin.Context) {
 	}
 
 	label := new(models.QuestionLabel)
-	err = c.BindJSON(&label.ID)
+	err = c.BindJSON(&label)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
 	}
 
-	err = services.GetQuestionBoxService().DeleteLabel(label)
+	err = services.GetQuestionBoxService().DeleteLabel(label.ID)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

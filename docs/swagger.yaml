@@ -1,0 +1,106 @@
+basePath: /api
+definitions:
+  models.EntityWithName:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.NewQuestionReq:
+    properties:
+      description:
+        description: 问题描述
+        type: string
+      major:
+        allOf:
+        - $ref: '#/definitions/models.EntityWithName'
+        description: 提问专业
+      questioner:
+        allOf:
+        - $ref: '#/definitions/models.PersonalInfo'
+        description: 提问人信息
+      school:
+        allOf:
+        - $ref: '#/definitions/models.EntityWithName'
+        description: 提问学校
+      title:
+        description: 问题标题
+        type: string
+    type: object
+  models.NewQuestionRes:
+    properties:
+      docID:
+        description: 新增问题ID
+        type: string
+    type: object
+  models.PersonalInfo:
+    properties:
+      CEEPlace:
+        description: 高考所在地
+        type: string
+      age:
+        description: 年龄
+        type: integer
+      gender:
+        description: 性别
+        type: string
+      situation:
+        description: 具体情况
+        type: string
+      subject:
+        description: 高考科目
+        type: string
+    type: object
+  svcerror.SvcErr:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+host: 127.0.0.1
+info:
+  contact:
+    email: enderbybear@foxmail.com
+    name: Songyue Chen
+  description: This is the backend for UniPingo application
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms
+  title: UniPingo Backend
+  version: 0.0.1
+paths:
+  /questionbox/question/new:
+    post:
+      consumes:
+      - application/json
+      description: 通过提问表单，在数据库中新增一个问题
+      parameters:
+      - description: 新增问题请求
+        in: body
+        name: newQuestionReq
+        required: true
+        schema:
+          $ref: '#/definitions/models.NewQuestionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 新增问题响应“
+          schema:
+            $ref: '#/definitions/models.NewQuestionRes'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/svcerror.SvcErr'
+      summary: 新增一个问题
+      tags:
+      - questionbox
+swagger: "2.0"

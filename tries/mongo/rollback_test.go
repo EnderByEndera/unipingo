@@ -12,7 +12,11 @@ import (
 
 func TestRollBack(t *testing.T) {
 	question := new(models.QuestionBoxQuestion)
-	err := db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My Question"}).Decode(question)
+	question.Title = "My Question"
+	_, err := db.GetCollection("questions").InsertOne(context.TODO(), question)
+	assert.Equal(t, err, nil)
+
+	err = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My Question"}).Decode(question)
 	assert.Equal(t, err, nil)
 
 	_, err = db.GetMongoConn().UseSession(nil, func(sessionContext mongo.SessionContext) (result interface{}, err error) {

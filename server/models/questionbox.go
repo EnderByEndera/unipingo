@@ -35,11 +35,15 @@ func (question *QuestionBoxQuestion) Init() {
 }
 
 type NewQuestionReq struct {
-	Title       string         `json:"title"`
-	Description string         `json:"description"`
-	School      EntityWithName `json:"school"`
-	Major       EntityWithName `json:"major"`
-	Questioner  PersonalInfo   `json:"questioner"`
+	Title       string         `json:"title"`       // 问题标题
+	Description string         `json:"description"` // 问题描述
+	School      EntityWithName `json:"school"`      // 提问学校
+	Major       EntityWithName `json:"major"`       // 提问专业
+	Questioner  PersonalInfo   `json:"questioner"`  // 提问人信息
+}
+
+type NewQuestionRes struct {
+	DocID primitive.ObjectID `json:"docID"` // 新增问题ID
 }
 
 type QuestionInLabelInfo struct {
@@ -67,6 +71,7 @@ func (ql *QuestionLabel) Init() {
 	if ql.CreateTime == 0 {
 		ql.CreateTime = uint64(time.Now().Unix())
 	}
+	ql.Statistics.QuestionNum = uint32(len(ql.Questions))
 }
 
 // QuestionBoxAnswer 提问箱回答
