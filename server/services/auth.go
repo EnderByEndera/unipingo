@@ -309,6 +309,7 @@ func (service *AuthService) GetTagByUserID(userID primitive.ObjectID) (tags []st
 	if userID == primitive.NilObjectID {
 		err = errors.New("用户ID为空")
 	}
+	// TODO 改成事务
 	res, err := db.GetCollection("user").Find(context.TODO(), bson.M{"_id": userID})
 	if err != nil {
 		return
