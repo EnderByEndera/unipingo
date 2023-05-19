@@ -306,3 +306,60 @@ func UpdateUserPublicInfo(c *gin.Context) {
 	}
 
 }
+
+func GetUserTags(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+	_, err = services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+	tags, err := services.GetAuthService().GetTagByUserID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusInternalServerError, err))
+		return
+	}
+	c.JSON(http.StatusOK, tags)
+}
+
+func UpdateUserTag(c *gin.Context) {
+	dataBytes, err := c.GetRawData()
+	if err != nil {
+		c.Error(svcerror.New(http.StatusInternalServerError, err))
+		return
+	}
+	req := &models.UserTagsInfoUpdateRequest{}
+	tags := req.UserTag
+	err = json.Unmarshal(dataBytes, req)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusInternalServerError, err))
+		return
+	}
+
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	_, err = services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	err = services.GetAuthService().UpdateUserTag(userID, tags)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"update": true,
+	})
+
+}

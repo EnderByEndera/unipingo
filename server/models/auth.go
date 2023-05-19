@@ -107,6 +107,7 @@ type User struct {
 	Collection            Collections        `json:"collection" bson:"collection"`
 	Type                  string             `json:"type" bson:"type"`
 	Membership            string             `json:"membership" bson:"membership"`
+	UserTag               []string           `json:"userTag" bson:"userTag"`
 	// PublicMeta   UserPublicMeta     `json:"publicMeta" bson:"publicMeta"`
 	// FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
 }
@@ -147,4 +148,8 @@ type UserPublicInfoUpdateRequest struct {
 
 type LoginResponse struct {
 	JWTToken string `json:"jwtToken"`
+}
+
+type UserTagsInfoUpdateRequest struct {
+	UserTag []string
 }
