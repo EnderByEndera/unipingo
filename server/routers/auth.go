@@ -333,8 +333,9 @@ func UpdateUserTag(c *gin.Context) {
 		return
 	}
 	req := &models.UserTagsInfoUpdateRequest{}
-	tags := req.UserTag
 	err = json.Unmarshal(dataBytes, req)
+	tags := req.UserTags
+
 	if err != nil {
 		c.Error(svcerror.New(http.StatusInternalServerError, err))
 		return

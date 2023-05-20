@@ -421,7 +421,7 @@ func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (
 		err = errors.New("问题不存在")
 		return
 	}
-	
+
 	transaction := func(sessCtx mongo.SessionContext) (res interface{}, err error) {
 		result, err := db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
 		if err != nil {
@@ -472,8 +472,8 @@ func (service *QuestionBoxService) DeleteQuestionBoxAnswerByID(answerID primitiv
 				"updateTime": uint64(time.Now().Unix()),
 			},
 		}
-		db.GetCollection("questions").UpdateMany(context.TODO(), bson.M{"questionID": answer.QuestionID}, update)
-		return
+		_, err = db.GetCollection("questions").UpdateMany(context.TODO(), bson.M{"questionID": answer.QuestionID}, update)
+		return nil, err
 	}
 	_, sessErr := db.GetMongoConn().UseSession(nil, transaction)
 	return sessErr

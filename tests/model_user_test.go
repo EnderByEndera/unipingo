@@ -2,7 +2,9 @@ package tests
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
 	"net/http"
@@ -85,5 +87,39 @@ func TestUser(t *testing.T) {
 	fmt.Println(err)
 	_, err = services.GetAuthService().GetUserByName("user1")
 	assert.NotEqual(t, err, nil)
+
+}
+
+func TestGetUserTag(t *testing.T) {
+	admin, err := services.GetAuthService().GetUserByName("admin")
+	fmt.Println(admin)
+	assert.Equal(t, err, nil)
+	tags, err := services.GetAuthService().GetTagByUserID(admin.ID)
+	fmt.Print("tags是")
+	fmt.Println(*tags)
+	assert.Equal(t, err, nil)
+
+	userID := primitive.NilObjectID
+	_, err = services.GetAuthService().GetTagByUserID(userID)
+	assert.Equal(t, err, errors.New("用户ID为空"))
+
+	userID, err = primitive.ObjectIDFromHex("6464decb74edfbd3023d19d3")
+	assert.Equal(t, err, nil)
+	_, err = services.GetAuthService().GetTagByUserID(userID)
+	assert.Equal(t, err, errors.New("数据库查找失败"))
+
+}
+
+func TestUpdateUserTag(t *testing.T) {
+	admin, err := services.GetAuthService().GetUserByName("admin")
+	assert.Equal(t, err, nil)
+	tags := []string{"喜欢理科"}
+	err = services.GetAuthService().UpdateUserTag(admin.ID, tags)
+	assert.Equal(t, err, nil)
+
+	userID := primitive.NilObjectID
+	//assert.Equal(t, err, nil)
+	err = services.GetAuthService().UpdateUserTag(userID, tags)
+	assert.Equal(t, err, errors.New("用户ID为空"))
 
 }

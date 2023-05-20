@@ -134,6 +134,11 @@ func RunServer() {
 		authRouter.GET("/userPublicInfo", authMiddleware(), routers.GetPublicInfo)
 		authRouter.GET("/userInfo", authMiddleware(), routers.GetUser)
 		authRouter.POST("/updateUserPublicInfo", authMiddleware(), routers.UpdateUserPublicInfo)
+		authTagRouter := authRouter.Group("/tag")
+		{
+			authTagRouter.GET("/getUserTagByUserID", authMiddleware(), routers.GetUserTags)
+			authTagRouter.POST("/updateUserTag", authMiddleware(), routers.UpdateUserTag)
+		}
 	}
 	heisRouter := r.Group("/api/heis")
 	{
@@ -189,12 +194,12 @@ func RunServer() {
 		qbAnswerRouter := questionBoxRouter.Group("/answer")
 		{
 			qbAnswerRouter.POST("/new", authMiddleware(), routers.NewQuestionBoxAnswer)
-			qbAnswerRouter.GET("/query",authMiddleware(),routers.QueryAnswerByID)
-			qbAnswerRouter.GET("/list", authMiddleware(),routers.GetAnswerList)
-			qbAnswerRouter.GET("/mylist",authMiddleware(),routers.GetMyAnswerList)
+			qbAnswerRouter.GET("/query", authMiddleware(), routers.QueryAnswerByID)
+			qbAnswerRouter.GET("/list", authMiddleware(), routers.GetAnswerList)
+			qbAnswerRouter.GET("/mylist", authMiddleware(), routers.GetMyAnswerList)
 			qbqUpdateRouter := qbAnswerRouter.Group("/update")
 			{
-				qbqUpdateRouter.POST("/content",authMiddleware(),routers.UpdateAnswerContent)
+				qbqUpdateRouter.POST("/content", authMiddleware(), routers.UpdateAnswerContent)
 			}
 		}
 	}

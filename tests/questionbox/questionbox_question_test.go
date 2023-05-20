@@ -176,7 +176,7 @@ func BenchmarkUpdateQuestion(b *testing.B) {
 }
 
 func TestDeleteQuestion(t *testing.T) {
-	questionID, err := primitive.ObjectIDFromHex("6460db3791ffc5d0aa7c26c2")
+	questionID, err := primitive.ObjectIDFromHex("6468662c9941220782c366c4")
 	assert.Equal(t, err, nil)
 
 	err = services.GetQuestionBoxService().DeleteQuestion(questionID)

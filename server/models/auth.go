@@ -79,6 +79,13 @@ type Collections struct {
 	Answers []AnswerInCollection `json:"answers" bson:"answers"`
 }
 
+// UserTag 用户标签
+type UserTag struct {
+	HEIName   string   `json:"heiName" bson:"heiName"`
+	MajorName string   `json:"majorName" bson:"majorName"`
+	CustomTag []string `json:"customTag" bson:"customTag"`
+}
+
 func (c *Collections) MarshalBSON() ([]byte, error) {
 	if c.Answers == nil {
 		c.Answers = make([]AnswerInCollection, 0)
@@ -107,7 +114,7 @@ type User struct {
 	Collection            Collections        `json:"collection" bson:"collection"`
 	Type                  string             `json:"type" bson:"type"`
 	Membership            string             `json:"membership" bson:"membership"`
-	UserTag               []string           `json:"userTag" bson:"userTag"`
+	UserTags              *[]string          `json:"userTags" bson:"userTags"`
 	// PublicMeta   UserPublicMeta     `json:"publicMeta" bson:"publicMeta"`
 	// FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
 }
@@ -151,5 +158,5 @@ type LoginResponse struct {
 }
 
 type UserTagsInfoUpdateRequest struct {
-	UserTag []string
+	UserTags []string `json:"userTags"`
 }

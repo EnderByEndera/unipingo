@@ -1,0 +1,7 @@
+POST https://127.0.0.1:8787/api/auth/tag/updateUserTag
+Content-Type: application/json
+X-Access-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI2NDY0ZGVjYjc0ZWRmYmQzMDIzZDE5ZDAiLCJSb2xlIjoiUk9MRV9BRE1JTiIsImlzcyI6InRlc3QiLCJleHAiOjE2ODQ3NDMzNzh9.NTdEzUvhe54cVQBZGRedg3G7GPH48QVmlnU5F8vqqlo
+
+{
+  "userTags": ["tag1","tag2"]
+}

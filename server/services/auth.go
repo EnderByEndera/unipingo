@@ -305,16 +305,20 @@ func (service *AuthService) AddHEIOrMajorToCollection(userID primitive.ObjectID,
 }
 
 // GetTagByUserID 通过userID找到对应的用户标签
-func (service *AuthService) GetTagByUserID(userID primitive.ObjectID) (tags []string, err error) {
+func (service *AuthService) GetTagByUserID(userID primitive.ObjectID) (tags *[]string, err error) {
 	if userID == primitive.NilObjectID {
 		err = errors.New("用户ID为空")
-	}
-	// TODO 改成事务
-	res, err := db.GetCollection("user").Find(context.TODO(), bson.M{"_id": userID})
-	if err != nil {
 		return
 	}
-	err = res.All(context.TODO(), &tags)
+
+	user := &models.User{}
+	err = db.GetCollection("user").FindOne(context.TODO(), bson.M{"_id": userID}).Decode(user)
+	if err != nil {
+		err = errors.New("数据库查找失败")
+		return
+	}
+	tags = user.UserTags
+
 	return
 }
 
@@ -322,6 +326,7 @@ func (service *AuthService) GetTagByUserID(userID primitive.ObjectID) (tags []st
 func (service *AuthService) UpdateUserTag(userID primitive.ObjectID, tags []string) (err error) {
 	if userID == primitive.NilObjectID {
 		err = errors.New("用户ID为空")
+		return
 	}
 	update := bson.M{
 		"$set": bson.M{
