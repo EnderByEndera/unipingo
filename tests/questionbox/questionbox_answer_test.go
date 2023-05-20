@@ -2,6 +2,8 @@ package tests
 
 import (
 	"errors"
+	"fmt"
+
 	"math/rand"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
@@ -17,7 +19,7 @@ import (
 func getOneAnswer(t *testing.T) *models.QuestionBoxAnswer {
 	admin, err := services.GetAuthService().GetUserByName("admin")
 	assert.Equal(t, err, nil)
-	Questionid, _ := primitive.ObjectIDFromHex("646866c56c57559bb3ec6cdc")
+	Questionid, _ := primitive.ObjectIDFromHex("6462ffd6ae024b214bff2b39")
 	school, err := services.GetHEIService().GetHEIByName("华东师范大学")
 	assert.Equal(t, err, nil)
 	major, err := services.GetMajorService().GetMajorByName("软件工程")
@@ -122,9 +124,9 @@ func BenchmarkGetAnswer(b *testing.B) {
 func TestDeleteQuestionBoxAnswerByID(t *testing.T) {
 	answerID, err := primitive.ObjectIDFromHex("646327adcbef972b23403d65")
 	assert.Equal(t, err, nil)
-	err = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
+	err= services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
 	assert.Equal(t, err, nil)
-	err = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
+	err= services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
 	assert.NotEqual(t, err, nil)
 }
 

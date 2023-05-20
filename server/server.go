@@ -1,7 +1,12 @@
 package server
 
 import (
+	"errors"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
+
+	_ "melodie-site/docs"
 	"melodie-site/server/auth"
 	"melodie-site/server/models"
 	"melodie-site/server/routers"
@@ -21,12 +26,13 @@ func authMiddleware() gin.HandlerFunc {
 		// err := auth.VerifyJWTString(accessToken)
 		claims, valid, err := auth.ParseJWTString(accessToken)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
+			c.Error(svcerror.New(http.StatusBadRequest, err))
 			c.Abort()
+			return
 		}
 		utils.SetClaims(c, *claims)
 		if err != nil || !valid {
-			c.String(http.StatusUnauthorized, err.Error())
+			c.Error(svcerror.New(http.StatusUnauthorized, err))
 			c.Abort()
 			return
 		}
@@ -61,11 +67,8 @@ func ErrorHandler() gin.HandlerFunc {
 			if svcErr, ok := err.(*svcerror.SvcErr); ok {
 				c.JSON(svcErr.Code, svcErr)
 			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"code": 500,
-					"msg":  "Internal Server Error",
-					"data": err.Error(),
-				})
+				unexpectedErr := svcerror.AppendData(svcerror.New(http.StatusInternalServerError, errors.New("internal server error")), err)
+				c.JSON(http.StatusInternalServerError, unexpectedErr)
 			}
 		}
 	}
@@ -115,6 +118,7 @@ func RunServer() {
 	r.Use(Cors())
 	r.Use(ErrorHandler())
 	initServer()
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	fileRouter := r.Group("/api/file")
 	{
 		fileRouter.GET("/getfile/:file", routers.SendFile)
@@ -165,7 +169,7 @@ func RunServer() {
 		// TODO: 具体API命名还需要和前端商定
 		orderRouter.POST("/prepay", authMiddleware(), routers.PrepayOrder)
 		orderRouter.POST("/notify", authMiddleware(), routers.NotifyOrder)
-		orderRouter.POST("/getstatus", authMiddleware(), routers.GetOrderStatus)
+		orderRouter.POST("/status/get", authMiddleware(), routers.GetOrderStatus)
 		orderRouter.POST("/cancel", authMiddleware(), routers.CancelOrder)
 	}
 
@@ -176,20 +180,17 @@ func RunServer() {
 			qbQuestionRouter.POST("/new", authMiddleware(), routers.NewQuestion)
 			qbQuestionRouter.GET("/query", authMiddleware(), routers.QueryQuestionByID)
 			qbQuestionRouter.GET("/list", authMiddleware(), routers.QueryQuestionList)
-			qbqUpdateRouter := qbQuestionRouter.Group("/update")
-			{
-				qbqUpdateRouter.POST("/description", authMiddleware(), routers.UpdateQuestionDescription)
-				qbqUpdateRouter.POST("/school", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
-				qbqUpdateRouter.POST("/major", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
-			}
+			qbQuestionRouter.POST("/description/update", authMiddleware(), routers.UpdateQuestionDescription)
+			qbQuestionRouter.POST("/school/update", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
+			qbQuestionRouter.POST("/major/update", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
 		}
 		qbLabelRouter := questionBoxRouter.Group("/label")
 		{
 			qbLabelRouter.POST("/new", authMiddleware(), routers.NewLabels)
-			qbLabelRouter.POST("/getfromuser", authMiddleware(), routers.GetLabelsFromUser)
-			qbLabelRouter.POST("/getfromquestion", authMiddleware(), routers.GetLabelFromQuestion)
+			qbLabelRouter.GET("/user/get", authMiddleware(), routers.GetLabelsFromUser)
+			qbLabelRouter.POST("/question/get", authMiddleware(), routers.GetLabelsFromQuestion)
 			qbLabelRouter.POST("/delete", authMiddleware(), routers.DeleteLabel)
-			qbLabelRouter.POST("/update", authMiddleware(), routers.UpdateLabel)
+			qbLabelRouter.POST("/content/update", authMiddleware(), routers.UpdateLabelContent)
 		}
 		qbAnswerRouter := questionBoxRouter.Group("/answer")
 		{
@@ -197,10 +198,7 @@ func RunServer() {
 			qbAnswerRouter.GET("/query", authMiddleware(), routers.QueryAnswerByID)
 			qbAnswerRouter.GET("/list", authMiddleware(), routers.GetAnswerList)
 			qbAnswerRouter.GET("/mylist", authMiddleware(), routers.GetMyAnswerList)
-			qbqUpdateRouter := qbAnswerRouter.Group("/update")
-			{
-				qbqUpdateRouter.POST("/content", authMiddleware(), routers.UpdateAnswerContent)
-			}
+			qbAnswerRouter.POST("/content/update", authMiddleware(), routers.UpdateAnswerContent)
 		}
 	}
 

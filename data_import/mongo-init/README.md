@@ -1,5 +1,7 @@
 # 3台MongoB Server配置
 
+如果要启用事务支持，必须配置MongoDB副本集服务器，最低配置为1 Primary 1 Secondary 1 Arbiter的设置。
+
 ## MongoDB安装
 如若未安装MongoDB，请至少安装MongoDB服务端，即mongod指令。[MongoDB服务端6.0.6下载连接](https://repo.mongodb.org/yum/redhat/7/mongodb-org/6.0/x86_64/RPMS/mongodb-org-server-6.0.6-1.el7.x86_64.rpm)
 

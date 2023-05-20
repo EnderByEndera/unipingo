@@ -34,14 +34,6 @@ func (question *QuestionBoxQuestion) Init() {
 	question.Answers = make([]primitive.ObjectID, 0)
 }
 
-type NewQuestionReq struct {
-	Title       string         `json:"title"`
-	Description string         `json:"description"`
-	School      EntityWithName `json:"school"`
-	Major       EntityWithName `json:"major"`
-	Questioner  PersonalInfo   `json:"questioner"`
-}
-
 type QuestionInLabelInfo struct {
 	ID      primitive.ObjectID `bson:"questionID" json:"questionID"`
 	Name    string             `bson:"name" json:"name"`
@@ -67,6 +59,7 @@ func (ql *QuestionLabel) Init() {
 	if ql.CreateTime == 0 {
 		ql.CreateTime = uint64(time.Now().Unix())
 	}
+	ql.Statistics.QuestionNum = uint32(len(ql.Questions))
 }
 
 // QuestionBoxAnswer 提问箱回答
@@ -93,9 +86,4 @@ type QuestionBoxAnswerReq struct {
 
 func (answer *QuestionBoxAnswer) Init() {
 	answer.CreateTime = uint64(time.Now().Unix())
-}
-
-type GetLabelsFromUserRequest struct {
-	Page    int64 `json:"page"`
-	PageNum int64 `json:"pageNum"`
 }
