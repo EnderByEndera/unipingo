@@ -52,6 +52,7 @@ type UserFreeToModifyMeta struct {
 }
 
 type EduBGItem struct {
+	AuthProcID     primitive.ObjectID   `json:"authProcID" bson:"authProcID"`
 	MajorID        primitive.ObjectID   `json:"majorID" bson:"majorID"`
 	MajorName      string               `json:"majorName" bson:"majorName"`
 	HEIID          primitive.ObjectID   `json:"heiID" bson:"heiID"`

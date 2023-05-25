@@ -199,7 +199,7 @@ func (service *AuthService) UpdateUserSchoolInfo(userID primitive.ObjectID, scho
 		return
 	}
 	for _, v := range user.EducationalBackground {
-		if v.HEIID == schoolInfo.HEIID && v.MajorID == schoolInfo.MajorID {
+		if v.HEIID == schoolInfo.HEIID && v.MajorID == schoolInfo.MajorID && v.Stage == schoolInfo.Stage {
 			err = errors.New("已有此段教育经历！")
 			return
 		}

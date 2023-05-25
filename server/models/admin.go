@@ -22,6 +22,7 @@ type StudentIdentityAuthenticationPhotographs struct {
 
 // 学生认证流程
 type StudentIdentityAuthentication struct {
+	ID          primitive.ObjectID                       `json:"id" bson:"_id,omitempty"`
 	UserID      primitive.ObjectID                       `json:"userID" bson:"userID"`
 	SchoolName  string                                   `json:"schoolName" bson:"schoolName"`
 	MajorName   string                                   `json:"majorName" bson:"majorName"`
@@ -39,10 +40,19 @@ type NewStudentIdentityAuthenticationRequest struct {
 	Photographs StudentIdentityAuthenticationPhotographs `json:"photos"`
 }
 
+type UpdateStudentIdentityAuthenticationRequest struct {
+	AuthProcID  primitive.ObjectID                       `json:"authProcID"`
+	SchoolName  string                                   `json:"schoolName"`
+	MajorName   string                                   `json:"majorName"`
+	Stage       EducationalStageType                     `json:"stage"`
+	Photographs StudentIdentityAuthenticationPhotographs `json:"photos"`
+}
+
 type ModifyStuIDAuthStatRequest struct {
-	UserID     string `json:"userID"`
-	Status     int    `json:"status"`
-	Suggestion string `json:"suggestion"`
+	AuthProcID primitive.ObjectID `json:"authProcID"`
+	UserID     primitive.ObjectID `json:"userID"`
+	Status     int                `json:"status"`
+	Suggestion string             `json:"suggestion"`
 }
 
 func (req *NewStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) (auth StudentIdentityAuthentication, err error) {
@@ -51,6 +61,24 @@ func (req *NewStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) 
 		return
 	}
 	auth = StudentIdentityAuthentication{
+		UserID:      oid,
+		Photographs: req.Photographs,
+		Status:      StudentIdentityPhotoUploaded,
+		Suggestion:  "",
+		SchoolName:  req.SchoolName,
+		MajorName:   req.MajorName,
+		Stage:       req.Stage,
+	}
+	return
+}
+
+func (req *UpdateStudentIdentityAuthenticationRequest) ToAuthStruct(userID string) (auth StudentIdentityAuthentication, err error) {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return
+	}
+	auth = StudentIdentityAuthentication{
+		ID:          req.AuthProcID,
 		UserID:      oid,
 		Photographs: req.Photographs,
 		Status:      StudentIdentityPhotoUploaded,
