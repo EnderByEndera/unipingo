@@ -23,6 +23,9 @@ type QuestionBoxService struct {
 
 var (
 	questionBoxService *QuestionBoxService
+	questionDBName     = "questions"
+	labelDBName        = "labels"
+	answerDBName       = "answers"
 )
 
 func GetQuestionBoxService() *QuestionBoxService {
@@ -45,7 +48,7 @@ func GetQuestionBoxService() *QuestionBoxService {
 
 func questionExists(question *models.QuestionBoxQuestion) (ok bool) {
 	// 只要在相同学校或专业下存在相同问题则判定为True
-	ok = db.GetCollection("questions").FindOne(context.TODO(), bson.M{
+	ok = db.GetCollection(questionDBName).FindOne(context.TODO(), bson.M{
 		"title":  question.Title,
 		"userID": question.UserID,
 	}).Decode(question) == nil
@@ -57,7 +60,6 @@ func (service *QuestionBoxService) NewQuestion(question *models.QuestionBoxQuest
 		err = errors.New("该问题没有填写标题或描述")
 		return
 	}
-	// TODO 关于questionexits是否要存在
 
 	if question.School.ID == primitive.NilObjectID && question.Major.ID == primitive.NilObjectID {
 		err = errors.New("该问题学校和专业均为空")
@@ -71,7 +73,7 @@ func (service *QuestionBoxService) NewQuestion(question *models.QuestionBoxQuest
 	}
 
 	question.Init()
-	res, err := db.GetCollection("questions").InsertOne(context.TODO(), question)
+	res, err := db.GetCollection(questionDBName).InsertOne(context.TODO(), question)
 	if err != nil {
 		return
 	}
@@ -95,9 +97,10 @@ func (service *QuestionBoxService) UpdateQuestionDescription(question *models.Qu
 	update := bson.M{
 		"$set": bson.M{
 			"description": question.Description,
+			"updateTime":  uint64(time.Now().Unix()),
 		},
 	}
-	err = db.GetCollection("questions").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	err = db.GetCollection(questionDBName).FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }
 
@@ -112,11 +115,12 @@ func (service *QuestionBoxService) UpdateQuestionSchoolOrMajor(question *models.
 	}
 	update := bson.M{
 		"$set": bson.M{
-			"school": question.School,
-			"major":  question.Major,
+			"school":     question.School,
+			"major":      question.Major,
+			"updateTime": uint64(time.Now().Unix()),
 		},
 	}
-	err = db.GetCollection("questions").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	err = db.GetCollection(questionDBName).FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }
 
@@ -126,7 +130,7 @@ func (service *QuestionBoxService) QueryQuestionByID(questionID primitive.Object
 		err = errors.New("questionID为空")
 		return
 	}
-	err = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"_id": questionID}).Decode(question)
+	err = db.GetCollection(questionDBName).FindOne(context.TODO(), bson.M{"_id": questionID}).Decode(question)
 	return
 }
 
@@ -134,11 +138,11 @@ func (service *QuestionBoxService) QueryQuestionsFromLabelID(labelID primitive.O
 	filter := bson.M{
 		"_id": labelID,
 	}
-	label := &models.QuestionLabel{}
+	label := &models.QuestionBoxLabel{}
 	questionIDs := make([]primitive.ObjectID, 0)
 
 	transaction := func(sessCtx mongo.SessionContext) (res interface{}, tranErr error) {
-		tranErr = db.GetCollection("labels").FindOne(sessCtx, filter).Decode(label)
+		tranErr = db.GetCollection(labelDBName).FindOne(sessCtx, filter).Decode(label)
 
 		if tranErr != nil {
 			return
@@ -154,7 +158,7 @@ func (service *QuestionBoxService) QueryQuestionsFromLabelID(labelID primitive.O
 			},
 		}
 
-		cur, tranErr := db.GetCollection("questions").Find(sessCtx, qInfoFilter)
+		cur, tranErr := db.GetCollection(questionDBName).Find(sessCtx, qInfoFilter)
 		if tranErr != nil {
 			return
 		}
@@ -184,7 +188,7 @@ func (service *QuestionBoxService) QueryQuestionsFromUser(user *models.User, pag
 	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
 
 	_, sessErr = db.GetMongoConn().UseSession(nil, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		cur, err := db.GetCollection("questions").Find(sessCtx, filter, opts)
+		cur, err := db.GetCollection(questionDBName).Find(sessCtx, filter, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -210,14 +214,14 @@ func (service *QuestionBoxService) AddAnswerToQuestion(questionID primitive.Obje
 		},
 	}
 
-	err = db.GetCollection("questions").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	err = db.GetCollection(questionDBName).FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }
 
 func (service *QuestionBoxService) DeleteQuestion(questionID primitive.ObjectID) (sessErr error) {
 	transaction := func(sessCtx mongo.SessionContext) (res interface{}, err error) {
 		question := new(models.QuestionBoxQuestion)
-		err = db.GetCollection("questions").FindOneAndDelete(sessCtx, bson.M{"_id": questionID}).Decode(question)
+		err = db.GetCollection(questionDBName).FindOneAndDelete(sessCtx, bson.M{"_id": questionID}).Decode(question)
 		if err != nil {
 			return
 		}
@@ -237,8 +241,11 @@ func (service *QuestionBoxService) DeleteQuestion(questionID primitive.ObjectID)
 			"$inc": bson.M{
 				"stats.questionNum": -1,
 			},
+			"$set": bson.M{
+				"updateTime": uint64(time.Now().Unix()),
+			},
 		}
-		_, err = db.GetCollection("labels").UpdateMany(sessCtx, filter, update)
+		_, err = db.GetCollection(labelDBName).UpdateMany(sessCtx, filter, update)
 		return
 	}
 
@@ -253,7 +260,7 @@ func (service *QuestionBoxService) DeleteQuestion(questionID primitive.ObjectID)
 */
 
 // NewLabels 创建多个标签
-func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (labelIDs []primitive.ObjectID, err error) {
+func (service *QuestionBoxService) NewLabels(labels []*models.QuestionBoxLabel) (labelIDs []primitive.ObjectID, err error) {
 	// 如果问题不存在标签，则直接退出
 	if labels == nil {
 		return
@@ -291,18 +298,18 @@ func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (la
 	}
 
 	_, err = db.GetMongoConn().UseSession(sessOpts, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		cur, sessErr := db.GetCollection("labels").Find(sessCtx, filter)
+		cur, sessErr := db.GetCollection(labelDBName).Find(sessCtx, filter)
 		if sessErr != nil {
 			return nil, sessErr
 		}
 
-		existsLabels := make([]*models.QuestionLabel, 0)
+		existsLabels := make([]*models.QuestionBoxLabel, 0)
 		sessErr = cur.All(sessCtx, &existsLabels)
 		if sessErr != nil {
 			return nil, sessErr
 		}
 
-		diffFunc := func(arrA, arrB []*models.QuestionLabel) (diffArr []interface{}) {
+		diffFunc := func(arrA, arrB []*models.QuestionBoxLabel) (diffArr []interface{}, intersectArr []*models.QuestionBoxLabel) {
 			// arrA - arrB，差集
 			labelArrMap := make(map[string]bool)
 			for _, label := range arrB {
@@ -311,24 +318,55 @@ func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (la
 
 			for _, label := range arrA {
 				if !labelArrMap[label.UserID.String()+label.Content] {
+					// 差集
 					diffArr = append(diffArr, label)
+				} else {
+					// 交集
+					intersectArr = append(intersectArr, label)
 				}
 			}
 			return
 		}
 
-		diffLabels := diffFunc(labels, existsLabels)
-		if len(diffLabels) == 0 {
-			return nil, nil
+		diffLabels, intersectLabels := diffFunc(labels, existsLabels)
+
+		if len(diffLabels) > 0 {
+			// 针对差集，我们需要插入这些差集到用户的问题文件夹（标签）中
+			result, sessErr := db.GetCollection(labelDBName).InsertMany(sessCtx, diffLabels)
+			if sessErr != nil {
+				return nil, sessErr
+			}
+
+			for _, labelID := range result.InsertedIDs {
+				labelIDs = append(labelIDs, labelID.(primitive.ObjectID))
+			}
 		}
 
-		result, sessErr := db.GetCollection("labels").InsertMany(sessCtx, diffLabels)
-		if sessErr != nil {
-			return nil, sessErr
-		}
+		if len(intersectLabels) > 0 {
+			updateModels := make([]mongo.WriteModel, 0)
+			for _, updateLabel := range intersectLabels {
+				// 针对交集，我们需要进行更新，添加问题到这个交集对应的所有标签中
+				intersectFilter := bson.M{
+					"userID":  updateLabel.UserID,
+					"content": updateLabel.Content,
+				}
 
-		for _, labelID := range result.InsertedIDs {
-			labelIDs = append(labelIDs, labelID.(primitive.ObjectID))
+				intersectUpdate := bson.M{
+					"$addToSet": bson.M{
+						"questions": bson.M{
+							"$each": updateLabel.Questions,
+						},
+					},
+				}
+
+				updateModels = append(updateModels,
+					mongo.NewUpdateOneModel().SetFilter(intersectFilter).SetUpdate(intersectUpdate))
+			}
+
+			_, sessErr = db.GetCollection(labelDBName).BulkWrite(sessCtx, updateModels)
+			if sessErr != nil {
+				return nil, sessErr
+			}
 		}
 
 		return nil, nil
@@ -337,19 +375,19 @@ func (service *QuestionBoxService) NewLabels(labels []*models.QuestionLabel) (la
 	return
 }
 
-func (service *QuestionBoxService) QueryLabelByID(labelID primitive.ObjectID) (label *models.QuestionLabel, err error) {
-	label = new(models.QuestionLabel)
-	err = db.GetCollection("labels").FindOne(context.TODO(), bson.M{"_id": labelID}).Decode(label)
+func (service *QuestionBoxService) QueryLabelByID(labelID primitive.ObjectID) (label *models.QuestionBoxLabel, err error) {
+	label = new(models.QuestionBoxLabel)
+	err = db.GetCollection(labelDBName).FindOne(context.TODO(), bson.M{"_id": labelID}).Decode(label)
 	return
 }
 
-func (service *QuestionBoxService) QueryLabelByContent(content string) (label *models.QuestionLabel, err error) {
-	label = new(models.QuestionLabel)
-	err = db.GetCollection("labels").FindOne(context.TODO(), bson.M{"content": content}).Decode(label)
+func (service *QuestionBoxService) QueryLabelByContent(content string) (label *models.QuestionBoxLabel, err error) {
+	label = new(models.QuestionBoxLabel)
+	err = db.GetCollection(labelDBName).FindOne(context.TODO(), bson.M{"content": content}).Decode(label)
 	return
 }
 
-func (service *QuestionBoxService) QueryLabelsFromUser(user *models.User, page, pageNum int64) (labels []*models.QuestionLabel, err error) {
+func (service *QuestionBoxService) QueryLabelsFromUser(user *models.User, page, pageNum int64) (labels []*models.QuestionBoxLabel, err error) {
 	filter := bson.M{
 		"userID": user.ID,
 	}
@@ -362,7 +400,7 @@ func (service *QuestionBoxService) QueryLabelsFromUser(user *models.User, page, 
 	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
 
 	_, err = db.GetMongoConn().UseSession(nil, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		cur, err := db.GetCollection("labels").Find(sessCtx, filter, opts)
+		cur, err := db.GetCollection(labelDBName).Find(sessCtx, filter, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -373,7 +411,7 @@ func (service *QuestionBoxService) QueryLabelsFromUser(user *models.User, page, 
 	return
 }
 
-func (service *QuestionBoxService) QueryLabelsFromQuestion(user *models.User, question *models.QuestionBoxQuestion, page, pageNum int64) (labels []*models.QuestionLabel, err error) {
+func (service *QuestionBoxService) QueryLabelsFromQuestion(user *models.User, question *models.QuestionBoxQuestion, page, pageNum int64) (labels []*models.QuestionBoxLabel, err error) {
 	filter := bson.M{
 		"userID": user.ID,
 		"questions": bson.M{
@@ -385,7 +423,7 @@ func (service *QuestionBoxService) QueryLabelsFromQuestion(user *models.User, qu
 
 	_, err = db.GetMongoConn().UseSession(nil, func(ctx mongo.SessionContext) (res interface{}, err error) {
 		opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
-		cur, err := db.GetCollection("labels").Find(ctx, filter, opts)
+		cur, err := db.GetCollection(labelDBName).Find(ctx, filter, opts)
 		if err != nil {
 			return
 		}
@@ -397,11 +435,11 @@ func (service *QuestionBoxService) QueryLabelsFromQuestion(user *models.User, qu
 }
 
 func (service *QuestionBoxService) DeleteLabel(labelID primitive.ObjectID) (err error) {
-	err = db.GetCollection("labels").FindOneAndDelete(context.TODO(), bson.M{"_id": labelID}).Err()
+	err = db.GetCollection(labelDBName).FindOneAndDelete(context.TODO(), bson.M{"_id": labelID}).Err()
 	return
 }
 
-func (service *QuestionBoxService) UpdateLabelContent(label *models.QuestionLabel) (err error) {
+func (service *QuestionBoxService) UpdateLabelContent(label *models.QuestionBoxLabel) (err error) {
 	if label.Content == "" {
 		err = errors.New("标签内容为空")
 		return
@@ -412,7 +450,7 @@ func (service *QuestionBoxService) UpdateLabelContent(label *models.QuestionLabe
 		return
 	}
 
-	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(),
+	err = db.GetCollection(labelDBName).FindOneAndUpdate(context.TODO(),
 		bson.M{"_id": label.ID},
 		bson.M{
 			"$set": bson.M{
@@ -442,12 +480,12 @@ func (service *QuestionBoxService) AddQuestionInLabel(labelID primitive.ObjectID
 			},
 		}
 
-		tranErr = db.GetCollection("labels").FindOneAndUpdate(sessCtx, filter, update).Err()
+		tranErr = db.GetCollection(labelDBName).FindOneAndUpdate(sessCtx, filter, update).Err()
 		if tranErr != nil {
 			return
 		}
 
-		cur, tranErr := db.GetCollection("labels").Aggregate(sessCtx, mongo.Pipeline{
+		cur, tranErr := db.GetCollection(labelDBName).Aggregate(sessCtx, mongo.Pipeline{
 			{{"$match", bson.M{"_id": labelID}}},
 			{{"$project", bson.M{"cnt": bson.M{"$size": "$questions"}}}},
 		})
@@ -465,7 +503,7 @@ func (service *QuestionBoxService) AddQuestionInLabel(labelID primitive.ObjectID
 			result = append(result, Result{Cnt: 0})
 		}
 
-		tranErr = db.GetCollection("labels").FindOneAndUpdate(sessCtx, filter, bson.M{
+		tranErr = db.GetCollection(labelDBName).FindOneAndUpdate(sessCtx, filter, bson.M{
 			"$set": bson.M{
 				"stats.questionNum": result[0].Cnt,
 			},
@@ -485,100 +523,12 @@ func (service *QuestionBoxService) DeleteQuestionFromLabel(labelID primitive.Obj
 		"$pull": bson.M{
 			"questions": bson.M{"questionID": questionID},
 		},
-		"$inc": bson.M{
-			"stats.questionNum": -1,
-		},
 		"$set": bson.M{
 			"updateTime": uint64(time.Now().Unix()),
 		},
 	}
 
-	err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update).Err()
-	return
-}
-
-func (service *QuestionBoxService) ChangeQuestionReadStatusInLabel(labelID primitive.ObjectID, questionID primitive.ObjectID) (err error) {
-
-	filter := bson.M{
-		"_id":                  labelID,
-		"questions.questionID": questionID,
-	}
-
-	update := bson.M{
-		"$set": bson.M{
-			"questions.$.hasRead": true,
-		},
-	}
-
-	type AggResult struct {
-		ID       primitive.ObjectID         `bson:"_id"`
-		Question models.QuestionInLabelInfo `bson:"questions"`
-	}
-
-	aggResult := make([]AggResult, 0)
-
-	transaction := func(sessCtx mongo.SessionContext) (res interface{}, sessErr error) {
-		cur, sessErr := db.GetCollection("labels").Aggregate(context.TODO(), mongo.Pipeline{
-			{{"$match", bson.M{"_id": labelID}}},
-			{{"$project", bson.M{"questions": 1}}},
-			{{"$unwind", "$questions"}},
-			{{"$match", bson.M{"questions.questionID": questionID}}},
-		})
-		if sessErr != nil {
-			return
-		}
-
-		sessErr = cur.All(context.TODO(), &aggResult)
-		if sessErr != nil {
-			return
-		}
-
-		if aggResult[0].Question.HasRead {
-			sessErr = errors.New("questionID对应问题状态已为已读")
-			return
-		}
-
-		db.GetCollection("labels").FindOneAndUpdate(context.TODO(), filter, update)
-		return
-	}
-
-	sessOpts := options.Session().SetDefaultWriteConcern(service.wc).SetDefaultReadConcern(service.rc)
-	_, err = db.GetMongoConn().UseSession(sessOpts, transaction)
-	return
-}
-
-func (service *QuestionBoxService) CountReadQuestionInLabel(labelID primitive.ObjectID) (questionReadNum int, err error) {
-	sessOpts := options.Session().SetDefaultWriteConcern(service.wc).SetDefaultReadConcern(service.rc)
-
-	type AggResult struct {
-		QuestionNum int `bson:"questions"`
-	}
-	aggResult := make([]AggResult, 0)
-	_, err = db.GetMongoConn().UseSession(sessOpts, func(sessCtx mongo.SessionContext) (result interface{}, sessErr error) {
-		cur, sessErr := db.GetCollection("labels").Aggregate(sessCtx, mongo.Pipeline{
-			{{"$match", bson.M{"_id": labelID}}},
-			{{"$project", bson.M{"questions": 1}}},
-			{{"$unwind", "$questions"}},
-			{{"$match", bson.M{"questions.hasRead": true}}},
-			{{"$count", "questions"}},
-		})
-		if sessErr != nil {
-			return
-		}
-
-		sessErr = cur.All(sessCtx, &aggResult)
-		return
-	})
-	if err != nil {
-		return
-	}
-
-	if len(aggResult) == 0 {
-		questionReadNum = 0
-	} else {
-		questionReadNum = aggResult[0].QuestionNum
-	}
-
+	err = db.GetCollection(labelDBName).FindOneAndUpdate(context.TODO(), filter, update).Err()
 	return
 }
 
@@ -588,7 +538,7 @@ func (service *QuestionBoxService) CountReadQuestionInLabel(labelID primitive.Ob
 */
 
 // NewAnswer 创建新回答
-func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (docID primitive.ObjectID, err error) {
+func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (answerID primitive.ObjectID, err error) {
 	if answer.Content == "" {
 		err = errors.New("该回答没有填写内容")
 		return
@@ -604,12 +554,12 @@ func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (
 	}
 
 	transaction := func(sessCtx mongo.SessionContext) (res interface{}, err error) {
-		result, err := db.GetCollection("questionboxanswer").InsertOne(context.Background(), answer)
+		result, err := db.GetCollection(answerDBName).InsertOne(context.Background(), answer)
 		if err != nil {
 			return
 		}
-		docID = result.InsertedID.(primitive.ObjectID)
-		err = questionBoxService.AddAnswerToQuestion(questionID, docID)
+		answerID = result.InsertedID.(primitive.ObjectID)
+		err = questionBoxService.AddAnswerToQuestion(questionID, answerID)
 		if err != nil {
 			err = errors.New("回答和问题关联失败")
 			return
@@ -617,7 +567,7 @@ func (service *QuestionBoxService) NewAnswer(answer *models.QuestionBoxAnswer) (
 		return
 	}
 	_, sessErr := db.GetMongoConn().UseSession(nil, transaction)
-	return docID, sessErr
+	return answerID, sessErr
 }
 
 func (service *QuestionBoxService) QueryAnswerByID(answerID primitive.ObjectID) (answer *models.QuestionBoxAnswer, err error) {
@@ -627,7 +577,7 @@ func (service *QuestionBoxService) QueryAnswerByID(answerID primitive.ObjectID) 
 		err = errors.New("answerID为空")
 		return
 	}
-	err = db.GetCollection("questionboxanswer").FindOne(context.TODO(), filter).Decode(answer)
+	err = db.GetCollection(answerDBName).FindOne(context.TODO(), filter).Decode(answer)
 	return
 }
 
@@ -640,7 +590,7 @@ func (service *QuestionBoxService) DeleteQuestionBoxAnswerByID(answerID primitiv
 	transaction := func(sessCtx mongo.SessionContext) (res interface{}, err error) {
 		answer := new(models.QuestionBoxAnswer)
 		filter := bson.M{"_id": answerID}
-		err = db.GetCollection("questionboxanswer").FindOneAndDelete(context.TODO(), filter).Decode(answer)
+		err = db.GetCollection(answerDBName).FindOneAndDelete(context.TODO(), filter).Decode(answer)
 		if err != nil {
 			return
 		}
@@ -653,7 +603,7 @@ func (service *QuestionBoxService) DeleteQuestionBoxAnswerByID(answerID primitiv
 				"updateTime": uint64(time.Now().Unix()),
 			},
 		}
-		db.GetCollection("questions").UpdateMany(context.TODO(), bson.M{"questionID": answer.QuestionID}, update)
+		_, err = db.GetCollection("questions").UpdateMany(context.TODO(), bson.M{"questionID": answer.QuestionID}, update)
 		return
 	}
 	_, sessErr := db.GetMongoConn().UseSession(nil, transaction)
@@ -675,7 +625,7 @@ func (service *QuestionBoxService) AnswerList(question *models.QuestionBoxQuesti
 	}
 	opts := options.Find().SetLimit(pageNum).SetSkip(pageNum * page)
 
-	res, err := db.GetCollection("questionboxanswer").Find(context.TODO(), filter, opts)
+	res, err := db.GetCollection(answerDBName).Find(context.TODO(), filter, opts)
 	if err != nil {
 		return
 	}
@@ -699,7 +649,7 @@ func (service *QuestionBoxService) MyAnswerList(user *models.User, page int64, p
 		return
 	}
 	opts := options.Find().SetLimit(pageNum).SetSkip(page * pageNum)
-	cur, err := db.GetCollection("questionboxanswer").Find(context.TODO(), filter, opts)
+	cur, err := db.GetCollection(answerDBName).Find(context.TODO(), filter, opts)
 	if err != nil {
 		return
 	}
@@ -720,9 +670,74 @@ func (service *QuestionBoxService) UpdateAnswerContent(answer *models.QuestionBo
 
 	update := bson.M{
 		"$set": bson.M{
-			"content": answer.Content,
+			"content":    answer.Content,
+			"updateTime": uint64(time.Now().Unix()),
 		},
 	}
-	err = db.GetCollection("questionboxanswer").FindOneAndUpdate(context.TODO(), filter, update).Err()
+	err = db.GetCollection(answerDBName).FindOneAndUpdate(context.TODO(), filter, update).Err()
+	return
+}
+
+func (service *QuestionBoxService) ReadAnswerByUser(userID primitive.ObjectID, answer *models.QuestionBoxAnswer) (err error) {
+	filter := bson.M{
+		"userID": userID,
+	}
+
+	answerLog := models.AnswerLog{
+		AnswerID:   answer.ID,
+		QuestionID: answer.QuestionID,
+		LogTime:    uint64(time.Now().Unix()),
+	}
+
+	update := bson.M{
+		"$addToSet": bson.M{
+			"answers": answerLog,
+		},
+	}
+
+	opts := options.FindOneAndUpdate().SetUpsert(true)
+
+	err = db.GetCollection("answerLogs").FindOneAndUpdate(context.TODO(), filter, update, opts).Err()
+	return
+}
+
+func (service *QuestionBoxService) CountAnswerReadNumInQuestion(questionID primitive.ObjectID, userID primitive.ObjectID) (questionReadNum int, err error) {
+	sessOpts := options.Session().SetDefaultWriteConcern(service.wc).SetDefaultReadConcern(service.rc)
+
+	transaction := func(sessCtx mongo.SessionContext) (interface{}, error) {
+		type UserReadAnswerLogs struct {
+			AnswerNum int `bson:"answers"`
+		}
+
+		filter := bson.M{
+			"userID": userID,
+		}
+
+		logs := make([]UserReadAnswerLogs, 0)
+
+		cur, err := db.GetCollection("answerLogs").Aggregate(sessCtx, mongo.Pipeline{
+			{{"$match", filter}},
+			{{"$unwind", "$answers"}},
+			{{"$match", bson.M{"answers.questionID": questionID}}},
+			{{"$count", "answers"}},
+		})
+		if err != nil {
+			return 0, err
+		}
+
+		err = cur.All(sessCtx, &logs)
+		if err != nil {
+			return 0, err
+		}
+
+		if len(logs) > 0 {
+			return logs[0].AnswerNum, nil
+		} else {
+			return 0, nil
+		}
+	}
+
+	result, err := db.GetMongoConn().UseSession(sessOpts, transaction)
+	questionReadNum = result.(int)
 	return
 }

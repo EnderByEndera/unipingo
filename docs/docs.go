@@ -24,6 +24,70 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/questionbox/label/content/update": {
+            "post": {
+                "description": "更新标签（文件夹）的标题（内容）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox",
+                    "label"
+                ],
+                "summary": "更新标签（文件夹）接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "标签（文件夹）ID",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "标签（文件夹）更新内容请求",
+                        "name": "updateLabelContentReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateLabelContentReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "标签（文件夹）更新响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.UpdateLabelContentRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
         "/questionbox/label/new": {
             "post": {
                 "description": "新建多个问题标签（文件夹）",
@@ -31,7 +95,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "questionbox"
+                    "questionbox",
+                    "label"
                 ],
                 "summary": "新建问题标签（文件夹）接口",
                 "parameters": [
@@ -57,6 +122,132 @@ const docTemplate = `{
                         "description": "新建问题标签（文件夹）响应",
                         "schema": {
                             "$ref": "#/definitions/types.NewLabelsRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/label/question/delete": {
+            "post": {
+                "description": "根据标签（文件夹）ID删除对应的标签（文件夹）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox",
+                    "label"
+                ],
+                "summary": "删除标签（文件夹）接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "标签（文件夹）ID",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取问题对应标签（文件夹）响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.DeleteLabelRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/questionbox/label/question/get": {
+            "post": {
+                "description": "根据当前问题获取对应的所有标签（文件夹）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox",
+                    "label"
+                ],
+                "summary": "根据问题获取标签（文件夹）接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "标签（文件夹）页码",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "标签（文件夹）每页包含个数",
+                        "name": "pageNum",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "所搜寻问题ID",
+                        "name": "getLabelsFromQuestionReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.GetLabelsFromQuestionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取问题对应标签（文件夹）响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.GetLabelsFromQuestionRes"
                         }
                     },
                     "400": {
@@ -149,7 +340,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "questionbox"
+                    "questionbox",
+                    "question"
                 ],
                 "summary": "更新问题描述接口",
                 "parameters": [
@@ -205,7 +397,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "questionbox"
+                    "questionbox",
+                    "question"
                 ],
                 "summary": "用户问题列表查询接口",
                 "parameters": [
@@ -266,7 +459,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "questionbox"
+                    "questionbox",
+                    "question"
                 ],
                 "summary": "更新问题学校或专业接口",
                 "parameters": [
@@ -325,7 +519,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "questionbox"
+                    "questionbox",
+                    "question"
                 ],
                 "summary": "新增一个问题",
                 "parameters": [
@@ -381,7 +576,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "questionbox"
+                    "questionbox",
+                    "question"
                 ],
                 "summary": "问题ID查询接口",
                 "parameters": [
@@ -435,7 +631,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "questionbox"
+                    "questionbox",
+                    "question"
                 ],
                 "summary": "更新问题学校或专业接口",
                 "parameters": [
@@ -497,14 +694,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.LabelStats": {
-            "type": "object",
-            "properties": {
-                "questionNum": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.PersonalInfo": {
             "type": "object",
             "properties": {
@@ -530,11 +719,51 @@ const docTemplate = `{
                 }
             }
         },
+        "models.QuestionBoxLabel": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createTime": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.QuestionInLabelInfo"
+                    }
+                },
+                "updateTime": {
+                    "type": "integer"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
         "models.QuestionBoxQuestion": {
             "type": "object",
             "properties": {
                 "answers": {
                     "description": "该问题下所有的回答",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "askTags": {
+                    "description": "该问题向带有哪些标签的用户提问",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "askTo": {
+                    "description": "该问题向谁提问",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -590,47 +819,10 @@ const docTemplate = `{
         "models.QuestionInLabelInfo": {
             "type": "object",
             "properties": {
-                "hasRead": {
-                    "type": "boolean"
-                },
                 "name": {
                     "type": "string"
                 },
                 "questionID": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.QuestionLabel": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "createTime": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "questions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.QuestionInLabelInfo"
-                    }
-                },
-                "stats": {
-                    "description": "问题标签相关的数据",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.LabelStats"
-                        }
-                    ]
-                },
-                "updateTime": {
-                    "type": "integer"
-                },
-                "userID": {
                     "type": "string"
                 }
             }
@@ -647,13 +839,40 @@ const docTemplate = `{
                 }
             }
         },
+        "types.DeleteLabelRes": {
+            "type": "object",
+            "properties": {
+                "labelID": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.GetLabelsFromQuestionReq": {
+            "type": "object",
+            "properties": {
+                "questionID": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.GetLabelsFromQuestionRes": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.QuestionBoxLabel"
+                    }
+                }
+            }
+        },
         "types.GetLabelsFromUserRes": {
             "type": "object",
             "properties": {
                 "labels": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.QuestionLabel"
+                        "$ref": "#/definitions/models.QuestionBoxLabel"
                     }
                 }
             }
@@ -664,8 +883,11 @@ const docTemplate = `{
                 "labels": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.QuestionLabel"
+                        "$ref": "#/definitions/models.QuestionBoxLabel"
                     }
+                },
+                "question": {
+                    "$ref": "#/definitions/models.QuestionBoxQuestion"
                 }
             }
         },
@@ -683,6 +905,20 @@ const docTemplate = `{
         "types.NewQuestionReq": {
             "type": "object",
             "properties": {
+                "askTo": {
+                    "description": "该问题向谁提问",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "astTags": {
+                    "description": "该问题向带有哪些标签的用户提问",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "description": {
                     "description": "问题描述",
                     "type": "string"
@@ -745,6 +981,41 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.QuestionBoxQuestion"
                     }
+                }
+            }
+        },
+        "types.ReadAnswerByUserReq": {
+            "type": "object",
+            "properties": {
+                "answerID": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.ReadAnswerByUserRes": {
+            "type": "object",
+            "properties": {
+                "log": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "types.UpdateLabelContentReq": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "labelID": {
+                    "type": "string"
+                }
+            }
+        },
+        "types.UpdateLabelContentRes": {
+            "type": "object",
+            "properties": {
+                "labelID": {
+                    "type": "string"
                 }
             }
         },

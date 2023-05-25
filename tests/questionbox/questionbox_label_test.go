@@ -17,8 +17,8 @@ import (
 	"strconv"
 )
 
-func getLabels(labelNum int) (labels []*models.QuestionLabel, err error) {
-	labels = make([]*models.QuestionLabel, labelNum)
+func getLabels(labelNum int) (labels []*models.QuestionBoxLabel, err error) {
+	labels = make([]*models.QuestionBoxLabel, labelNum)
 	user, err := services.GetAuthService().GetUserByName("admin")
 	if err != nil {
 		return
@@ -32,14 +32,14 @@ func getLabels(labelNum int) (labels []*models.QuestionLabel, err error) {
 	questionInLabelInfos := make([]models.QuestionInLabelInfo, len(questions))
 	for index := range questionInLabelInfos {
 		questionInLabelInfos[index] = models.QuestionInLabelInfo{
-			ID:      questions[index].ID,
-			Name:    questions[index].Title,
-			HasRead: false,
+			ID:   questions[index].ID,
+			Name: questions[index].Title,
 		}
 	}
 
 	for index := range labels {
-		labels[index] = new(models.QuestionLabel)
+		labels[index] = new(models.QuestionBoxLabel)
+		labels[index].ID = primitive.NewObjectID()
 		labels[index].Content = "Hello World " + primitive.NewObjectID().String()
 		labels[index].UserID = user.ID
 		labels[index].Questions = questionInLabelInfos
@@ -71,10 +71,36 @@ func TestNewLabels(t *testing.T) {
 		}
 	}()
 
-	documentNumTwo, err := db.GetCollection("labels").CountDocuments(context.TODO(), bson.M{})
+	documentNumReal, err := db.GetCollection("labels").CountDocuments(context.TODO(), bson.M{})
 	assert.Equal(t, err, nil)
 
-	assert.Equal(t, documentNum, documentNumTwo)
+	assert.Equal(t, documentNum, documentNumReal)
+
+	label := labels[0]
+	label.Questions = []models.QuestionInLabelInfo{
+		{
+			ID:   primitive.NewObjectID(),
+			Name: "Test " + primitive.NewObjectID().String(),
+		},
+		{
+			ID:   primitive.NewObjectID(),
+			Name: "Test " + primitive.NewObjectID().String(),
+		},
+	}
+
+	labels, err = getLabels(9)
+	assert.Equal(t, err, nil)
+	// 此时labels中有9个新label，一个替换了问题的原label
+	labels = append(labels, label)
+
+	labelIDs, err = services.GetQuestionBoxService().NewLabels(labels)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(labelIDs), 9)
+
+	updatedLabel := new(models.QuestionBoxLabel)
+	err = db.GetCollection("labels").FindOne(context.TODO(), bson.M{"_id": label.ID}).Decode(updatedLabel)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(updatedLabel.Questions), 12) // 12是因为getLabels()中初始化问题数量为10，再加上新增的两个test问题一共12
 }
 
 func TestQueryLabelFromUser(t *testing.T) {
@@ -93,8 +119,8 @@ func TestQueryLabelFromUser(t *testing.T) {
 	_, err = services.GetQuestionBoxService().QueryLabelsFromUser(&user, -1, 0)
 	assert.NotEqual(t, err, nil)
 
-	var page int64 = 0
-	var pageNum int64 = 626737562
+	var page int64 = 2
+	var pageNum int64 = 626737562 // 尝试较大的数
 	_, err = services.GetQuestionBoxService().QueryLabelsFromUser(&user, page, pageNum)
 	assert.Equal(t, err, nil)
 }
@@ -111,7 +137,7 @@ func TestQueryLabelFromQuestion(t *testing.T) {
 
 	for _, label := range labels {
 		for _, question := range questions {
-			questionInfo := &models.QuestionInLabelInfo{ID: question.ID, Name: question.Title, HasRead: false}
+			questionInfo := &models.QuestionInLabelInfo{ID: question.ID, Name: question.Title}
 			err := services.GetQuestionBoxService().AddQuestionInLabel(label.ID, questionInfo)
 			assert.Equal(t, err, nil)
 		}
@@ -138,10 +164,10 @@ func TestUpdateLabelContent(t *testing.T) {
 		}
 	}()
 
-	newLabels := make([]*models.QuestionLabel, 0)
+	newLabels := make([]*models.QuestionBoxLabel, 0)
 	for _, labelID := range labelIDs {
 		// 如果要更新内容
-		label := &models.QuestionLabel{
+		label := &models.QuestionBoxLabel{
 			ID:      labelID,
 			Content: "Hello From World",
 		}
@@ -168,9 +194,8 @@ func TestAddQuestionInLabel(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	questionInfo := &models.QuestionInLabelInfo{
-		ID:      questionID,
-		Name:    question.Title,
-		HasRead: false,
+		ID:   questionID,
+		Name: question.Title,
 	}
 
 	labels, err := getLabels(1)
@@ -184,7 +209,7 @@ func TestAddQuestionInLabel(t *testing.T) {
 	}()
 	assert.Equal(t, err, nil)
 
-	newLabels := make([]*models.QuestionLabel, 0)
+	newLabels := make([]*models.QuestionBoxLabel, 0)
 	for index, id := range labelIDs {
 		label, err := services.GetQuestionBoxService().QueryLabelByID(id)
 		assert.Equal(t, err, nil)
@@ -196,7 +221,6 @@ func TestAddQuestionInLabel(t *testing.T) {
 		addedLabel, err := services.GetQuestionBoxService().QueryLabelByID(labelIDs[index])
 		assert.Equal(t, err, nil)
 		assert.Equal(t, addedLabel.Content, newLabels[index].Content)
-		assert.Equal(t, addedLabel.Statistics.QuestionNum, newLabels[index].Statistics.QuestionNum+1)
 	}
 
 }
@@ -210,9 +234,8 @@ func TestDeleteQuestionFromLabel(t *testing.T) {
 	}()
 
 	deletedQuestionInfo := &models.QuestionInLabelInfo{
-		ID:      deletedQuestion.ID,
-		Name:    deletedQuestion.Title,
-		HasRead: false,
+		ID:   deletedQuestion.ID,
+		Name: deletedQuestion.Title,
 	}
 
 	labels, err := getLabels(1)
@@ -242,107 +265,67 @@ func TestDeleteQuestionFromLabel(t *testing.T) {
 		for _, question := range deletedLabel.Questions {
 			assert.NotEqual(t, question.ID, deletedQuestion.ID)
 		}
-		assert.Equal(t, deletedLabel.Statistics.QuestionNum, addedLabel.Statistics.QuestionNum-1)
 	}
 }
 
 func TestQuestionHasReadInLabel(t *testing.T) {
+	//TODO: Rewrite
+	user, err := services.GetAuthService().GetUserByName("admin")
+	assert.Equal(t, err, nil)
+
 	labels, err := getLabels(1)
 	assert.Equal(t, err, nil)
 
-	questionInfos := make([]models.QuestionInLabelInfo, 0)
-	for i := 0; i < 10; i++ {
-		question, err := getOneQuestion(primitive.NewObjectID().String())
-		assert.Equal(t, err, nil)
-		newQuestionID, err := services.GetQuestionBoxService().NewQuestion(question)
-		defer func() {
-			_ = services.GetQuestionBoxService().DeleteQuestion(newQuestionID)
-		}()
-		assert.Equal(t, err, nil)
+	question, err := getOneQuestion("TestQuestionHasReadInLabel")
+	assert.Equal(t, err, nil)
 
-		questionInfos = append(questionInfos, models.QuestionInLabelInfo{
-			ID:      newQuestionID,
-			Name:    question.Title,
-			HasRead: false,
-		})
-	}
-
-	for index := range labels {
-		labels[index].Questions = questionInfos
-	}
-
-	labelIDs, err := services.GetQuestionBoxService().NewLabels(labels)
+	questionID, err := services.GetQuestionBoxService().NewQuestion(question)
 	defer func() {
-		for index := range labelIDs {
-			_ = services.GetQuestionBoxService().DeleteLabel(labelIDs[index])
-		}
+		_ = services.GetQuestionBoxService().DeleteQuestion(questionID)
 	}()
 	assert.Equal(t, err, nil)
 
-	newLabels := make([]*models.QuestionLabel, 0)
-	for index := range labelIDs {
-		label, err := services.GetQuestionBoxService().QueryLabelByID(labelIDs[index])
-		assert.Equal(t, err, nil)
-
-		newLabels = append(newLabels, label)
+	for index := range labels {
+		labels[index].Questions = append(labels[index].Questions, models.QuestionInLabelInfo{
+			ID:   question.ID,
+			Name: question.Title,
+		})
 	}
-
-	for index := range labelIDs {
-		err = services.GetQuestionBoxService().ChangeQuestionReadStatusInLabel(labelIDs[index], newLabels[index].Questions[0].ID)
-		assert.Equal(t, err, nil)
-
-		label, err := services.GetQuestionBoxService().QueryLabelByID(labelIDs[index])
-		assert.Equal(t, err, nil)
-
-		ok := false
-		for _, question := range label.Questions {
-			if question.HasRead {
-				ok = true
-				break
-			}
-		}
-		assert.Equal(t, ok, true)
-	}
-
-}
-
-func TestCountReadQuestionInLabel(t *testing.T) {
-	labels, err := getLabels(1)
 	assert.Equal(t, err, nil)
-
 	labelIDs, err := services.GetQuestionBoxService().NewLabels(labels)
-	assert.Equal(t, err, nil)
-
 	defer func() {
 		for _, labelID := range labelIDs {
 			_ = services.GetQuestionBoxService().DeleteLabel(labelID)
 		}
 	}()
+	assert.Equal(t, err, nil)
 
-	newLabels := make([]*models.QuestionLabel, 0)
-	for _, labelID := range labelIDs {
-		label, err := services.GetQuestionBoxService().QueryLabelByID(labelID)
+	answers := make([]*models.QuestionBoxAnswer, 0)
+	answerIDs := make([]primitive.ObjectID, 0)
+
+	for i := 0; i < 10; i++ {
+		answer, err := getOneAnswer(question)
 		assert.Equal(t, err, nil)
-		newLabels = append(newLabels, label)
+		answer.QuestionID = question.ID
+		answerID, err := services.GetQuestionBoxService().NewAnswer(answer)
+		answerIDs = append(answerIDs, answerID)
+		assert.Equal(t, err, nil)
+		question.Answers = append(question.Answers, answerID)
+		answers = append(answers, answer)
 	}
 
-	for _, newLabel := range newLabels {
-		count := 0
-
-		for index := range newLabel.Questions {
-			if rand.Intn(2) == 0 {
-				newLabel.Questions[index].HasRead = true
-				count++
-			}
+	defer func() {
+		for _, answerID := range answerIDs {
+			_ = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
 		}
-		err = db.GetCollection("labels").FindOneAndUpdate(context.TODO(),
-			bson.M{"_id": newLabel.ID},
-			bson.M{"$set": bson.M{"questions": newLabel.Questions}}).Err()
-		assert.Equal(t, err, nil)
+	}()
 
-		readNum, err := services.GetQuestionBoxService().CountReadQuestionInLabel(newLabel.ID)
+	for index := range answers {
+		err = services.GetQuestionBoxService().ReadAnswerByUser(user.ID, answers[index])
 		assert.Equal(t, err, nil)
-		assert.Equal(t, readNum, count)
+		readNum, err := services.GetQuestionBoxService().CountAnswerReadNumInQuestion(question.ID, user.ID)
+		assert.Equal(t, err, nil)
+		assert.Equal(t, readNum, index+1)
 	}
 }
 
@@ -392,9 +375,8 @@ func BenchmarkQueryLabelFromQuestion(b *testing.B) {
 
 	for _, labelID := range labelIDs {
 		questionInfo := &models.QuestionInLabelInfo{
-			ID:      question.ID,
-			Name:    question.Title,
-			HasRead: false,
+			ID:   question.ID,
+			Name: question.Title,
 		}
 		err := services.GetQuestionBoxService().AddQuestionInLabel(labelID.ID, questionInfo)
 		assert.Equal(b, err, nil)
@@ -434,9 +416,8 @@ func BenchmarkDeleteQuestionFromLabel(b *testing.B) {
 	for _, labelID := range labelIDs {
 		for _, questionID := range questionIDs {
 			questionInfo := &models.QuestionInLabelInfo{
-				ID:      questionID,
-				Name:    "BenchmarkDeleteQuestionFromLabel",
-				HasRead: false,
+				ID:   questionID,
+				Name: "BenchmarkDeleteQuestionFromLabel",
 			}
 			err := services.GetQuestionBoxService().AddQuestionInLabel(labelID.ID, questionInfo)
 			assert.Equal(b, err, nil)

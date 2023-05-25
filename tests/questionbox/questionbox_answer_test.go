@@ -2,8 +2,6 @@ package questionbox_test
 
 import (
 	"errors"
-	"fmt"
-
 	"math/rand"
 	"melodie-site/server/models"
 	"melodie-site/server/services"
@@ -16,19 +14,26 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func getOneAnswer(t *testing.T) *models.QuestionBoxAnswer {
+func getOneAnswer(question *models.QuestionBoxQuestion) (answer *models.QuestionBoxAnswer, err error) {
 	admin, err := services.GetAuthService().GetUserByName("admin")
-	assert.Equal(t, err, nil)
-	questionID, _ := primitive.ObjectIDFromHex("6462ffd6ae024b214bff2b39")
+	if err != nil {
+		return
+	}
 	school, err := services.GetHEIService().GetHEIByName("华东师范大学")
-	assert.Equal(t, err, nil)
+	if err != nil {
+		return
+	}
 	major, err := services.GetMajorService().GetMajorByName("软件工程")
-	assert.Equal(t, err, nil)
-	answer := &models.QuestionBoxAnswer{
+	if err != nil {
+		return
+	}
+
+	answer = &models.QuestionBoxAnswer{
+		ID:         primitive.NewObjectID(),
 		UserID:     admin.ID,
 		CreateTime: uint64(time.Now().UnixMilli()),
 		Content:    "华东师范大学中山北路校区在上海市普陀区中山北路3663号，学校很小，方便赶早八..",
-		QuestionID: questionID,
+		QuestionID: question.ID,
 		School: models.EntityWithName{
 			ID:   school.ID,
 			Name: school.Name,
@@ -45,45 +50,56 @@ func getOneAnswer(t *testing.T) *models.QuestionBoxAnswer {
 			Situation: "",
 		},
 	}
-	return answer
+
+	return
 }
 
 func TestNewQuestionboxAnswer(t *testing.T) {
-	answer := getOneAnswer(t)
-	docID, err := services.GetQuestionBoxService().NewAnswer(answer)
+	question, err := getOneQuestion("TestNewQuestionboxAnswer")
+	questionID, err := services.GetQuestionBoxService().NewQuestion(question)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	}()
 	assert.Equal(t, err, nil)
-	assert.NotEqual(t, docID, primitive.NilObjectID)
-	fmt.Println("1")
+
+	answer, err := getOneAnswer(question)
+	assert.Equal(t, err, nil)
+
+	answerID, err := services.GetQuestionBoxService().NewAnswer(answer)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
+	}()
+	assert.Equal(t, err, nil)
+	assert.NotEqual(t, answerID, primitive.NilObjectID)
 
 	answer.Content = ""
-	docID, err = services.GetQuestionBoxService().NewAnswer(answer)
+	answerID, err = services.GetQuestionBoxService().NewAnswer(answer)
 	assert.Equal(t, err, errors.New("该回答没有填写内容"))
-	assert.Equal(t, docID, primitive.NilObjectID)
-	fmt.Println("2")
+	assert.Equal(t, answerID, primitive.NilObjectID)
 
 	answer.Content = "认准华师大"
 	answer.QuestionID, _ = primitive.ObjectIDFromHex("1")
-	docID, err = services.GetQuestionBoxService().NewAnswer(answer)
-	fmt.Print("对应的ID")
-	fmt.Print(answer.QuestionID)
+	answerID, err = services.GetQuestionBoxService().NewAnswer(answer)
 	assert.NotEqual(t, err, nil)
-	assert.Equal(t, docID, primitive.NilObjectID)
-	fmt.Println("3")
-
+	assert.Equal(t, answerID, primitive.NilObjectID)
 }
 
 func BenchmarkNewQuestionboxAnswer(b *testing.B) {
 	user, err := services.GetAuthService().GetUserByName("admin")
 	assert.Equal(b, err, nil)
-	questionid, err := primitive.ObjectIDFromHex("645df98ee933a87982169266")
+
+	question, err := getOneQuestion(primitive.NewObjectID().String())
 	assert.Equal(b, err, nil)
-	question := &models.QuestionBoxQuestion{
-		ID: questionid,
-	}
+	questionID, err := services.GetQuestionBoxService().NewQuestion(question)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	}()
+	assert.Equal(b, err, nil)
+
 	answers := make([]*models.QuestionBoxAnswer, 1000)
 	for i := range answers {
 		answer := &models.QuestionBoxAnswer{
-			QuestionID: questionid,
+			QuestionID: questionID,
 			UserID:     user.ID,
 			Content:    "这里是回答的内容",
 		}
@@ -128,8 +144,21 @@ func BenchmarkGetAnswer(b *testing.B) {
 	})
 }
 func TestDeleteQuestionBoxAnswerByID(t *testing.T) {
-	answerID, err := primitive.ObjectIDFromHex("646327adcbef972b23403d65")
+	question, err := getOneQuestion("TestDeleteQuestionBoxAnswerByID")
 	assert.Equal(t, err, nil)
+
+	questionID, err := services.GetQuestionBoxService().NewQuestion(question)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	}()
+	assert.Equal(t, err, nil)
+
+	answer, err := getOneAnswer(question)
+	assert.Equal(t, err, nil)
+
+	answerID, err := services.GetQuestionBoxService().NewAnswer(answer)
+	assert.Equal(t, err, nil)
+
 	err = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
 	assert.Equal(t, err, nil)
 	err = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
@@ -198,32 +227,55 @@ func BenchmarkAnswerList(b *testing.B) {
 }
 
 func TestUpdateAnswerContent(t *testing.T) {
-	answerID, err := primitive.ObjectIDFromHex("645df9d6d4145cfbbc2db78e")
+	question, err := getOneQuestion("TestUpdateAnswerContent")
 	assert.Equal(t, err, nil)
-	answer := &models.QuestionBoxAnswer{
-		ID:      answerID,
-		Content: "update 1",
-	}
+
+	questionID, err := services.GetQuestionBoxService().NewQuestion(question)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	}()
+	assert.Equal(t, err, nil)
+
+	answer, err := getOneAnswer(question)
+	assert.Equal(t, err, nil)
+
+	answerID, err := services.GetQuestionBoxService().NewAnswer(answer)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
+	}()
+	assert.Equal(t, err, nil)
+
+	answer.Content = "Update 1"
+
 	err = services.GetQuestionBoxService().UpdateAnswerContent(answer)
 	assert.Equal(t, err, nil)
+
+	updatedAnswer, err := services.GetQuestionBoxService().QueryAnswerByID(answerID)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, updatedAnswer.Content, "Update 1")
+
 	answer.Content = ""
 	err = services.GetQuestionBoxService().UpdateAnswerContent(answer)
 	assert.Equal(t, err, errors.New("更新的回答为空"))
-	answer = &models.QuestionBoxAnswer{
-		ID:      primitive.NilObjectID,
-		Content: "update 1",
-	}
-	err = services.GetQuestionBoxService().UpdateAnswerContent(answer)
-	assert.NotEqual(t, err, nil)
 }
 
 func BenchmarkUpdateAnswerContent(b *testing.B) {
-	answerID, err := primitive.ObjectIDFromHex("645df9d6d4145cfbbc2db78e")
+	question, err := getOneQuestion("BenchmarkUpdateAnswerContent")
 	assert.Equal(b, err, nil)
-	answer := &models.QuestionBoxAnswer{
-		ID:      answerID,
-		Content: "update 2",
-	}
+
+	questionID, err := services.GetQuestionBoxService().NewQuestion(question)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestion(questionID)
+	}()
+	assert.Equal(b, err, nil)
+
+	answer, err := getOneAnswer(question)
+	assert.Equal(b, err, nil)
+
+	answerID, err := services.GetQuestionBoxService().NewAnswer(answer)
+	defer func() {
+		_ = services.GetQuestionBoxService().DeleteQuestionBoxAnswerByID(answerID)
+	}()
 
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {

@@ -11,6 +11,8 @@ type NewQuestionReq struct {
 	School      models.EntityWithName `json:"school"`      // 提问学校
 	Major       models.EntityWithName `json:"major"`       // 提问专业
 	Questioner  models.PersonalInfo   `json:"questioner"`  // 提问人信息
+	AskTo       []primitive.ObjectID  `json:"askTo"`       // 该问题向谁提问
+	AskTags     []string              `json:"astTags"`     // 该问题向带有哪些标签的用户提问
 }
 
 type NewQuestionRes struct {
@@ -43,7 +45,8 @@ type UpdateQuestionSchoolOrMajorRes struct {
 }
 
 type NewLabelsReq struct {
-	Labels []*models.QuestionLabel `json:"labels"`
+	Labels   []*models.QuestionBoxLabel  `json:"labels"`
+	Question *models.QuestionBoxQuestion `json:"question"`
 }
 
 type NewLabelsRes struct {
@@ -54,7 +57,7 @@ type GetLabelsFromUserReq struct {
 }
 
 type GetLabelsFromUserRes struct {
-	Labels []*models.QuestionLabel `json:"labels"`
+	Labels []*models.QuestionBoxLabel `json:"labels"`
 }
 
 type GetLabelsFromQuestionReq struct {
@@ -62,7 +65,7 @@ type GetLabelsFromQuestionReq struct {
 }
 
 type GetLabelsFromQuestionRes struct {
-	Labels []*models.QuestionLabel `json:"labels"`
+	Labels []*models.QuestionBoxLabel `json:"labels"`
 }
 
 type DeleteLabelReq struct {
@@ -79,4 +82,12 @@ type UpdateLabelContentReq struct {
 
 type UpdateLabelContentRes struct {
 	LabelID primitive.ObjectID `json:"labelID"`
+}
+
+type ReadAnswerByUserReq struct {
+	AnswerID primitive.ObjectID `json:"answerID"`
+}
+
+type ReadAnswerByUserRes struct {
+	Log bool `json:"log"`
 }

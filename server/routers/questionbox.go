@@ -41,7 +41,7 @@ func NewQuestion(c *gin.Context) {
 	if newQuestionReq.School.ID != primitive.NilObjectID {
 		hei, err := services.GetHEIService().GetHEI(newQuestionReq.School.ID)
 		if err != nil {
-			c.Error(svcerror.New(http.StatusBadRequest, err))
+			c.Error(svcerror.New(http.StatusBadRequest, errors.New("未知学校ID")))
 			return
 		}
 		if hei.Name != newQuestionReq.School.Name {
@@ -52,7 +52,7 @@ func NewQuestion(c *gin.Context) {
 	} else if newQuestionReq.Major.ID != primitive.NilObjectID {
 		major, err := services.GetMajorService().GetMajor(newQuestionReq.Major.ID)
 		if err != nil {
-			c.Error(svcerror.New(http.StatusBadRequest, err))
+			c.Error(svcerror.New(http.StatusBadRequest, errors.New("未知专业ID")))
 			return
 		}
 		if major.Name != newQuestionReq.Major.Name {
@@ -86,6 +86,8 @@ func NewQuestion(c *gin.Context) {
 		School:      newQuestionReq.School,
 		Major:       newQuestionReq.Major,
 		Questioner:  newQuestionReq.Questioner,
+		AskTo:       newQuestionReq.AskTo,
+		AskTags:     newQuestionReq.AskTags,
 	}
 
 	docID, err := services.GetQuestionBoxService().NewQuestion(question)
@@ -139,7 +141,7 @@ func QueryQuestionByID(c *gin.Context) {
 	})
 }
 
-// QueryQuestionList 用户问题列表查询接口
+// QueryMyQuestionList 用户问题列表查询接口
 // @summary 用户问题列表查询接口
 // @description 查询某用户的所有问题
 // @tags questionbox,question
@@ -152,7 +154,7 @@ func QueryQuestionByID(c *gin.Context) {
 // @failure 401 {object{ svcerror.SvcErr "用户认证失败"
 // @failure 500 {object} svcerror.SvcErr "服务器内部问题"
 // @router /questionbox/question/list [get]
-func QueryQuestionList(c *gin.Context) {
+func QueryMyQuestionList(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
@@ -489,6 +491,55 @@ func UpdateAnswerContent(c *gin.Context) {
 
 }
 
+// ReadAnswerByUser 用户已读某一回答接口
+// @summary 用户已读某一回答接口
+// @description 当用户读取某个回答的页面时调用该接口
+// @tags questionbox,answer
+// @param x-access-token header string true "JWT Token"
+// @param newLabelsReq body types.ReadAnswerByUserReq true "用户读取某回答请求，需包含回答ID"
+// @produce application/json
+// @success 200 {object} types.ReadAnswerByUserRes "用户读取某回答响应"
+// @failure 400 {object} svcerror.SvcErr "请求格式问题"
+// @failure 401 {object{ svcerror.SvcErr "用户认证失败"
+// @failure 500 {object} svcerror.SvcErr "服务器内部问题"
+// @router /questionbox/label/new [post]
+func ReadAnswerByUser(c *gin.Context) {
+	userID, err := utils.GetUserID(c)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	user, err := services.GetAuthService().GetUserByID(userID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusUnauthorized, err))
+		return
+	}
+
+	req := new(types.ReadAnswerByUserReq)
+	err = c.ShouldBindJSON(req)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	answer, err := services.GetQuestionBoxService().QueryAnswerByID(req.AnswerID)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	err = services.GetQuestionBoxService().ReadAnswerByUser(user.ID, answer)
+	if err != nil {
+		c.Error(svcerror.New(http.StatusBadRequest, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, types.ReadAnswerByUserRes{
+		Log: true,
+	})
+}
+
 // NewLabels 新建问题标签（文件夹）接口
 // @summary 新建问题标签（文件夹）接口
 // @description 新建多个问题标签（文件夹）
@@ -723,7 +774,7 @@ func UpdateLabelContent(c *gin.Context) {
 		return
 	}
 
-	label := &models.QuestionLabel{
+	label := &models.QuestionBoxLabel{
 		ID:      req.LabelID,
 		Content: req.Content,
 	}

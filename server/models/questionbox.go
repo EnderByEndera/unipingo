@@ -27,6 +27,8 @@ type QuestionBoxQuestion struct {
 	Major       EntityWithName       `bson:"major" json:"major"`           // 所提问专业的ID
 	Questioner  PersonalInfo         `bson:"questioner" json:"questioner"` // 提问者相关数据
 	Answers     []primitive.ObjectID `bson:"answers" json:"answers"`       // 该问题下所有的回答
+	AskTo       []primitive.ObjectID `bson:"askTo" json:"askTo"`           // 该问题向谁提问
+	AskTags     []string             `bson:"askTags" json:"askTags"`       // 该问题向带有哪些标签的用户提问
 }
 
 func (question *QuestionBoxQuestion) Init() {
@@ -35,31 +37,25 @@ func (question *QuestionBoxQuestion) Init() {
 }
 
 type QuestionInLabelInfo struct {
-	ID      primitive.ObjectID `bson:"questionID" json:"questionID"`
-	Name    string             `bson:"name" json:"name"`
-	HasRead bool               `bson:"hasRead" json:"hasRead"`
+	ID   primitive.ObjectID `bson:"questionID" json:"questionID"`
+	Name string             `bson:"name" json:"name"`
 }
 
-type LabelStats struct {
-	QuestionNum uint32 `bson:"questionNum" json:"questionNum"`
-}
-
-// QuestionLabel 提问箱标签
-type QuestionLabel struct {
+// QuestionBoxLabel 提问箱标签
+type QuestionBoxLabel struct {
 	ID         primitive.ObjectID    `bson:"_id,omitempty" json:"id"`
 	UserID     primitive.ObjectID    `bson:"userID" json:"userID"`
 	Content    string                `bson:"content" json:"content"`
 	CreateTime uint64                `bson:"createTime" json:"createTime"`
 	UpdateTime uint64                `bson:"updateTime" json:"updateTime"`
-	Statistics LabelStats            `bson:"stats" json:"stats"` // 问题标签相关的数据
 	Questions  []QuestionInLabelInfo `bson:"questions" json:"questions"`
 }
 
-func (ql *QuestionLabel) Init() {
+func (ql *QuestionBoxLabel) Init() {
 	if ql.CreateTime == 0 {
 		ql.CreateTime = uint64(time.Now().Unix())
+		ql.UpdateTime = uint64(time.Now().Unix())
 	}
-	ql.Statistics.QuestionNum = uint32(len(ql.Questions))
 }
 
 // QuestionBoxAnswer 提问箱回答
@@ -86,4 +82,16 @@ type QuestionBoxAnswerReq struct {
 
 func (answer *QuestionBoxAnswer) Init() {
 	answer.CreateTime = uint64(time.Now().Unix())
+	answer.UpdateTime = uint64(time.Now().Unix())
+}
+
+type AnswerLog struct {
+	AnswerID   primitive.ObjectID `bson:"answerID" json:"answerID"`
+	QuestionID primitive.ObjectID `bson:"questionID" json:"questionID"`
+	LogTime    uint64             `bson:"logTime" json:"logTime"`
+}
+
+type AnswerLogs struct {
+	ID      primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Answers []AnswerLog        `bson:"answers" json:"answers"`
 }
