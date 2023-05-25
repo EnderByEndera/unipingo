@@ -128,9 +128,10 @@ func RunServer() {
 		authRouter.POST("/login", routers.Login)
 		authRouter.POST("/wechatLogin", routers.LoginWechat)
 		authRouter.POST("/newStuIDAuth", authMiddleware(), routers.NewStuIDAuthProc)             // 提起学生身份验证
+		authRouter.POST("/updateStuIDAuth", authMiddleware(), routers.UpdateStuIDAuthProc)       // 修改学生身份验证信息
 		authRouter.GET("/unhandledStuIDAuths", authMiddleware(), routers.GetUnhandledProcs)      // 获取所有未完成的学生身份验证
-		authRouter.GET("/stuIDAuth", authMiddleware(), routers.GetStuIDAuthProc)                 // 获取所有未完成的学生身份验证
-		authRouter.POST("/setStuIDAuthStatus", authMiddleware(), routers.SetStudentIDAuthStatus) // 获取所有未完成的学生身份验证
+		authRouter.GET("/stuIDAuth", authMiddleware(), routers.GetStuIDAuthProc)                 // 获取一个学生身份验证的实例
+		authRouter.POST("/setStuIDAuthStatus", authMiddleware(), routers.SetStudentIDAuthStatus) // 设置学生身份验证的状态
 		authRouter.GET("/userPublicInfo", authMiddleware(), routers.GetPublicInfo)
 		authRouter.GET("/userInfo", authMiddleware(), routers.GetUser)
 		authRouter.POST("/updateUserPublicInfo", authMiddleware(), routers.UpdateUserPublicInfo)
@@ -189,12 +190,12 @@ func RunServer() {
 		qbAnswerRouter := questionBoxRouter.Group("/answer")
 		{
 			qbAnswerRouter.POST("/new", authMiddleware(), routers.NewQuestionBoxAnswer)
-			qbAnswerRouter.GET("/query",authMiddleware(),routers.QueryAnswerByID)
-			qbAnswerRouter.GET("/list", authMiddleware(),routers.GetAnswerList)
-			qbAnswerRouter.GET("/mylist",authMiddleware(),routers.GetMyAnswerList)
+			qbAnswerRouter.GET("/query", authMiddleware(), routers.QueryAnswerByID)
+			qbAnswerRouter.GET("/list", authMiddleware(), routers.GetAnswerList)
+			qbAnswerRouter.GET("/mylist", authMiddleware(), routers.GetMyAnswerList)
 			qbqUpdateRouter := qbAnswerRouter.Group("/update")
 			{
-				qbqUpdateRouter.POST("/content",authMiddleware(),routers.UpdateAnswerContent)
+				qbqUpdateRouter.POST("/content", authMiddleware(), routers.UpdateAnswerContent)
 			}
 		}
 	}

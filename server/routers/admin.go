@@ -41,24 +41,59 @@ func NewStuIDAuthProc(c *gin.Context) {
 		c.AbortWithError(code, err)
 		return
 	}
-	// services.GetAuthService().UpdateUserSchoolInfo(auth.UserID,
-	// 	&models.SchoolInfo{Name: req.SchoolName, Status: models.StudentIdentityPhotoUploaded})
 	c.String(http.StatusOK, "auth stream succeeded!")
 }
 
-// 获取用户自己的学生身份认证
-func GetStuIDAuthProc(c *gin.Context) {
+func UpdateStuIDAuthProc(c *gin.Context) {
+	dataBytes, err := c.GetRawData()
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
 	claims, err := utils.GetClaims(c)
 	if err != nil {
 		c.AbortWithError(http.StatusUnauthorized, err)
 		return
 	}
-	userID, err := primitive.ObjectIDFromHex(claims.UserID)
+	req := &models.UpdateStudentIdentityAuthenticationRequest{}
+	err = json.Unmarshal(dataBytes, req)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-	proc, err := services.GetAdminService().GetStuIDAuthProc(userID)
+	fmt.Printf("%+v\n", req)
+	auth, err := req.ToAuthStruct(claims.UserID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	code, err := services.GetAdminService().UpdateStuIDAuthProc(&auth)
+	if err != nil {
+		c.AbortWithError(code, err)
+		return
+	}
+	c.String(http.StatusOK, "auth stream succeeded!")
+}
+
+// 获取用户自己的学生身份认证
+func GetStuIDAuthProc(c *gin.Context) {
+	// claims, err := utils.GetClaims(c)
+	// if err != nil {
+	// 	c.AbortWithError(http.StatusUnauthorized, err)
+	// 	return
+	// }
+	// userID, err := primitive.ObjectIDFromHex(claims.UserID)
+	// if err != nil {
+	// 	c.AbortWithError(http.StatusBadRequest, err)
+	// 	return
+	// }
+	authProcIDStr := c.Query("authProcID")
+	authProcID, err := primitive.ObjectIDFromHex(authProcIDStr)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("authProcID无效"))
+		return
+	}
+	proc, err := services.GetAdminService().GetStuIDAuthProc(authProcID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -103,5 +138,5 @@ func SetStudentIDAuthStatus(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusOK, "update succeeded!")
+	c.JSON(http.StatusOK, makeResponse(true, err, nil))
 }

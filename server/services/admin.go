@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"melodie-site/server/db"
 	"melodie-site/server/models"
@@ -26,8 +25,8 @@ func GetAdminService() *AdminService {
 	return adminService
 }
 
-func (adminService *AdminService) GetStuIDAuthProc(userID primitive.ObjectID) (authProc *models.StudentIdentityAuthentication, err error) {
-	filter := bson.M{"userID": userID}
+func (adminService *AdminService) GetStuIDAuthProc(id primitive.ObjectID) (authProc *models.StudentIdentityAuthentication, err error) {
+	filter := bson.M{"_id": id}
 	authProc = &models.StudentIdentityAuthentication{}
 	res := db.GetCollection("auth").FindOne(context.TODO(), filter)
 	err = res.Err()
@@ -37,22 +36,22 @@ func (adminService *AdminService) GetStuIDAuthProc(userID primitive.ObjectID) (a
 }
 
 func (adminService *AdminService) NewStuIDAuthProc(auth *models.StudentIdentityAuthentication) (code int, err error) {
-	_, err = adminService.GetStuIDAuthProc(auth.UserID)
-	if err == nil {
-		err = errors.New("record already exists for user: " + auth.UserID.Hex())
-		filter := bson.M{"userID": auth.UserID}
-		fmt.Println(err, auth)
-		err = db.GetCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": auth}).Err()
-		fmt.Println(err, auth)
-		code = http.StatusConflict // 返回资源冲突409。
-		return
-	}
 	_, err = db.GetCollection("auth").InsertOne(context.TODO(), auth)
 	if err != nil {
 		code = http.StatusBadRequest
 		return
 	}
 	code = http.StatusOK
+	return
+}
+
+func (adminService *AdminService) UpdateStuIDAuthProc(auth *models.StudentIdentityAuthentication) (code int, err error) {
+	filter := bson.M{"_id": auth.ID}
+	err = db.GetCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": auth}).Err()
+	code = http.StatusOK
+	if err != nil {
+		code = http.StatusNotFound
+	}
 	return
 }
 
@@ -72,42 +71,39 @@ func (adminService *AdminService) GetUnhandledStuIDAuthProcs() (authProcs []mode
 }
 
 func (adminService *AdminService) UpdateStuIDAuthStatus(req *models.ModifyStuIDAuthStatRequest) (err error) {
-	userID, err := primitive.ObjectIDFromHex(req.UserID)
-	if err != nil {
-		return
-	}
-	proc, err := adminService.GetStuIDAuthProc(userID)
+
+	proc, err := adminService.GetStuIDAuthProc(req.AuthProcID)
+	fmt.Println(proc)
 	if err == nil {
-		filter := bson.M{"userID": userID}
+		if req.Status == models.StudentIdentityAuthenticated {
+			var hei *models.HEI
+			var major *models.Major
+			hei, err = GetHEIService().GetHEIByName(proc.SchoolName)
+			if err != nil {
+				return
+			}
+			major, err = GetMajorService().GetMajorByName(proc.MajorName)
+			if err != nil {
+				return
+			}
+			err = GetAuthService().UpdateUserSchoolInfo(req.UserID, &models.EduBGItem{
+				HEIName:    hei.Name,
+				HEIID:      hei.ID,
+				MajorID:    major.ID,
+				MajorName:  major.Name,
+				Stage:      proc.Stage,
+				AuthProcID: proc.ID,
+			})
+			if err != nil {
+				return
+			}
+		}
+		filter := bson.M{"userID": req.UserID}
 		fmt.Println(req)
 		err = db.GetCollection("auth").FindOneAndUpdate(context.TODO(), filter, bson.M{"$set": bson.M{"status": req.Status, "suggestion": req.Suggestion}}).Err()
 		if err != nil {
 			return
 		}
-		var hei *models.HEI
-		var major *models.Major
-		hei, err = GetHEIService().GetHEIByName(proc.SchoolName)
-		if err != nil {
-			return
-		}
-		major, err = GetMajorService().GetMajorByName(proc.MajorName)
-		if err != nil {
-			return
-		}
-		err = GetAuthService().UpdateUserSchoolInfo(userID, &models.EduBGItem{
-			HEIName:   hei.Name,
-			HEIID:     hei.ID,
-			MajorID:   major.ID,
-			MajorName: major.Name,
-			Stage:     proc.Stage,
-			// Name:   proc.SchoolName,
-			// Status: req.Status,
-		})
-		if err != nil {
-			return
-		}
-
-		return
 	}
 	return
 }
