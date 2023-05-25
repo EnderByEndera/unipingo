@@ -179,7 +179,7 @@ func RunServer() {
 		{
 			qbQuestionRouter.POST("/new", authMiddleware(), routers.NewQuestion)
 			qbQuestionRouter.GET("/query", authMiddleware(), routers.QueryQuestionByID)
-			qbQuestionRouter.GET("/list", authMiddleware(), routers.QueryQuestionList)
+			qbQuestionRouter.GET("/list", authMiddleware(), routers.QueryMyQuestionList)
 			qbQuestionRouter.POST("/description/update", authMiddleware(), routers.UpdateQuestionDescription)
 			qbQuestionRouter.POST("/school/update", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
 			qbQuestionRouter.POST("/major/update", authMiddleware(), routers.UpdateQuestionSchoolOrMajor)
@@ -199,6 +199,7 @@ func RunServer() {
 			qbAnswerRouter.GET("/list", authMiddleware(), routers.GetAnswerList)
 			qbAnswerRouter.GET("/mylist", authMiddleware(), routers.GetMyAnswerList)
 			qbAnswerRouter.POST("/content/update", authMiddleware(), routers.UpdateAnswerContent)
+			qbAnswerRouter.POST("/read", authMiddleware(), routers.ReadAnswerByUser)
 		}
 	}
 

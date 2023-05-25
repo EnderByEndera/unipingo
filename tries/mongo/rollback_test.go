@@ -12,30 +12,30 @@ import (
 
 func TestRollBack(t *testing.T) {
 	question := new(models.QuestionBoxQuestion)
-	question.Title = "My Question"
+	question.Title = "My Answer"
 	_, err := db.GetCollection("questions").InsertOne(context.TODO(), question)
 	assert.Equal(t, err, nil)
 
-	err = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My Question"}).Decode(question)
+	err = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My Answer"}).Decode(question)
 	assert.Equal(t, err, nil)
 
 	_, err = db.GetMongoConn().UseSession(nil, func(sessionContext mongo.SessionContext) (result interface{}, err error) {
 		err = db.GetCollection("questions").FindOneAndUpdate(sessionContext,
 			bson.M{"_id": question.ID},
-			bson.M{"$set": bson.M{"title": "My New Question"}}).Err()
+			bson.M{"$set": bson.M{"title": "My New Answer"}}).Err()
 		if err != nil {
 			return
 		}
 
 		err = db.GetCollection("questions").FindOneAndUpdate(sessionContext,
-			bson.M{"title": "My Question"},
+			bson.M{"title": "My Answer"},
 			bson.M{"$set": bson.M{"name": "Ender"}}).Err()
-		result = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My New Question"})
+		result = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My New Answer"})
 		return
 	})
 
 	assert.NotEqual(t, err, nil)
-	err = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My Question"}).Decode(question)
+	err = db.GetCollection("questions").FindOne(context.TODO(), bson.M{"title": "My Answer"}).Decode(question)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, question.Title, "My Question")
+	assert.Equal(t, question.Title, "My Answer")
 }

@@ -91,7 +91,7 @@ func TestNewQuestion(t *testing.T) {
 }
 
 func TestNewQuestionWithExists(t *testing.T) {
-	question, err := getOneQuestion("My Question")
+	question, err := getOneQuestion("My Answer")
 	assert.Equal(t, err, nil)
 	docID, err := services.GetQuestionBoxService().NewQuestion(question)
 	defer func() {
@@ -110,7 +110,6 @@ func BenchmarkNewQuestion(b *testing.B) {
 		question, _ := getOneQuestion(strconv.Itoa(i))
 		questions[i] = question
 	}
-
 
 	b.ResetTimer()
 	b.SetParallelism(36)
@@ -241,9 +240,8 @@ func TestDeleteQuestion(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	questionInfo := &models.QuestionInLabelInfo{
-		ID:      question.ID,
-		Name:    question.Title,
-		HasRead: false,
+		ID:   question.ID,
+		Name: question.Title,
 	}
 
 	questionID, err := services.GetQuestionBoxService().NewQuestion(question)

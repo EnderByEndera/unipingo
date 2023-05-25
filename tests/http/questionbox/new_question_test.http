@@ -1,12 +1,13 @@
 POST https://127.0.0.1:8787/api/questionbox/question/new
 accept: application/json
 Content-Type: application/json
+X-Access-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI2NDYwZGIyMzUzZDNmNWMwNDU2NDc1ZTYiLCJSb2xlIjoiUk9MRV9BRE1JTiIsImlzcyI6InRlc3QiLCJleHAiOjE2ODQ3Njg5NjV9.JDgpt02b3uf9s0cgQo0RzGOn3UnoUjBdi9eahuE07VU
 
 {
-    "title": "New Question 6",
+    "title": "New Question 7",
     "description": "This is a new question",
     "major": {
-        "id": "6440f79e5d0bbef01247b8dd",
+        "id": "6460dacd11f46ce6e0b269f1",
         "name": "哲学"
     }
 }
