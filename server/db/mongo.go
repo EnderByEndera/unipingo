@@ -2,11 +2,10 @@ package db
 
 import (
 	"context"
-	"log"
-	"time"
-
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
+	"melodie-site/server/config"
 )
 
 type MongoConnection struct {
@@ -16,9 +15,10 @@ type MongoConnection struct {
 var mongoConn *MongoConnection
 
 func InitMongo() *MongoConnection {
+	timeout := config.GetConfig().MongoDB.Timeout
 	cli, err := mongo.NewClient(options.Client().
-		ApplyURI("mongodb://localhost:10200").
-		SetTimeout(5 * time.Second))
+		ApplyURI(config.GetConfig().MongoDB.URI).
+		SetTimeout(timeout))
 	if err != nil {
 		log.Fatal(err)
 	}

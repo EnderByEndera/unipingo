@@ -60,9 +60,9 @@ func (handler *OSSHandler) EnsureBucket(bucketName string) {
 
 func Connect() *OSSHandler {
 	cfg := config.GetConfig()
-	endpoint := fmt.Sprintf("%s:%s", cfg.ADDRESSES.OSS_ADDR, cfg.ADDRESSES.OSS_PORT)
-	accessKeyID := cfg.INFRASTRUCTURE_USER.NAME
-	secretAccessKey := cfg.INFRASTRUCTURE_USER.PASSWORD
+	endpoint := fmt.Sprintf("%s:%s", cfg.Addresses.OssAddr, cfg.Addresses.OssPort)
+	accessKeyID := cfg.InfrastructureUser.NAME
+	secretAccessKey := cfg.InfrastructureUser.PASSWORD
 	useSSL := false
 
 	// Initialize minio client object.

@@ -20,6 +20,63 @@
     "host": "127.0.0.1:8787",
     "basePath": "/api",
     "paths": {
+        "/questionbox/answer/read": {
+            "post": {
+                "description": "当用户读取某个回答的页面时调用该接口",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "questionbox",
+                    "answer"
+                ],
+                "summary": "用户已读某一回答接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "用户读取某回答请求，需包含回答ID",
+                        "name": "newLabelsReq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.ReadAnswerByUserReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "用户读取某回答响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.ReadAnswerByUserRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
         "/questionbox/label/content/update": {
             "post": {
                 "description": "更新标签（文件夹）的标题（内容）",
@@ -37,13 +94,6 @@
                         "description": "JWT Token",
                         "name": "x-access-token",
                         "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "标签（文件夹）ID",
-                        "name": "page",
-                        "in": "query",
                         "required": true
                     },
                     {
@@ -676,6 +726,212 @@
                     }
                 }
             }
+        },
+        "/xzxjdiscuss/add": {
+            "post": {
+                "description": "增加以为学长学姐说用户",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "xzxj_discuss"
+                ],
+                "summary": "添加学长学姐说用户接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "学长学姐说添加用户接口请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.AddOrUpdateXZXJUserReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "学长学姐说添加用户接口响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.AddOrUpdateXZXJUserRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/xzxjdiscuss/delete": {
+            "get": {
+                "description": "删除学长学姐说用户",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "xzxj_discuss"
+                ],
+                "summary": "删除学长学姐说用户接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除学长学姐说用户接口响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.DeleteXZXJUserRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/xzxjdiscuss/get": {
+            "get": {
+                "description": "查询学长学姐说用户",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "xzxj_discuss"
+                ],
+                "summary": "查询学长学姐说用户接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询学长学姐说用户接口响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.QueryXZXJUserByUserIDRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
+        },
+        "/xzxjdiscuss/update": {
+            "post": {
+                "description": "增加以为学长学姐说用户",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "xzxj_discuss"
+                ],
+                "summary": "添加学长学姐说用户接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "x-access-token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "学长学姐说添加用户接口请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.AddOrUpdateXZXJUserReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "学长学姐说添加用户接口响应",
+                        "schema": {
+                            "$ref": "#/definitions/types.AddOrUpdateXZXJUserRes"
+                        }
+                    },
+                    "400": {
+                        "description": "请求格式问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "401": {
+                        "description": "用户认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部问题",
+                        "schema": {
+                            "$ref": "#/definitions/svcerror.SvcErr"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -823,6 +1079,42 @@
                 }
             }
         },
+        "models.XZXJUser": {
+            "type": "object",
+            "properties": {
+                "experience": {
+                    "description": "个人经历",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "学长学姐说集合中的_id",
+                    "type": "string"
+                },
+                "managedActivities": {
+                    "description": "主理活动",
+                    "type": "string"
+                },
+                "motto": {
+                    "description": "格言",
+                    "type": "string"
+                },
+                "picture": {
+                    "description": "学长学姐说用户照片",
+                    "type": "string"
+                },
+                "sections": {
+                    "description": "学长学姐说用户参与的分享计划",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userID": {
+                    "description": "参与学长学姐说的用户的真实ID，实际使用应该使用此ID",
+                    "type": "string"
+                }
+            }
+        },
         "svcerror.SvcErr": {
             "type": "object",
             "properties": {
@@ -835,11 +1127,67 @@
                 }
             }
         },
+        "types.AddOrUpdateXZXJUserReq": {
+            "type": "object",
+            "properties": {
+                "experience": {
+                    "description": "学长学姐说用户的个人经历",
+                    "type": "string"
+                },
+                "managedActivities": {
+                    "description": "学长学姐说用户的主理活动",
+                    "type": "string"
+                },
+                "motto": {
+                    "description": "学长学姐说用户的座右铭",
+                    "type": "string"
+                },
+                "picture": {
+                    "description": "学长学姐说用户的个人照片",
+                    "type": "string"
+                },
+                "realName": {
+                    "description": "学长学姐说用户的真实姓名",
+                    "type": "string"
+                },
+                "sections": {
+                    "description": "学长学姐说用户参与的分享计划",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userTags": {
+                    "description": "学长学姐说用户的标签",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "types.AddOrUpdateXZXJUserRes": {
+            "type": "object",
+            "properties": {
+                "userID": {
+                    "description": "学长学姐说用户的用户ID",
+                    "type": "string"
+                }
+            }
+        },
         "types.DeleteLabelRes": {
             "type": "object",
             "properties": {
                 "labelID": {
                     "type": "string"
+                }
+            }
+        },
+        "types.DeleteXZXJUserRes": {
+            "type": "object",
+            "properties": {
+                "deleted": {
+                    "type": "boolean"
                 }
             }
         },
@@ -977,6 +1325,19 @@
                     "items": {
                         "$ref": "#/definitions/models.QuestionBoxQuestion"
                     }
+                }
+            }
+        },
+        "types.QueryXZXJUserByUserIDRes": {
+            "type": "object",
+            "properties": {
+                "xzxjUser": {
+                    "description": "学长学姐说用户额外信息",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.XZXJUser"
+                        }
+                    ]
                 }
             }
         },

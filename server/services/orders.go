@@ -36,9 +36,9 @@ var (
 	wechatClient  *core.Client
 
 	// TODO: 目前需要等待产品注册微信商户后获得以下三个参数
-	MchID                      string = config.GetConfig().WECHAT.MCHID            // 商户号
-	MchCertificateSerialNumber string = config.GetConfig().WECHAT.MCHCERTSERIALNUM // 商户证书序列号
-	MchAPIv3Key                string = config.GetConfig().WECHAT.MCHAPIV3KEY      // 商户APIv3密钥
+	MchID                      string = config.GetConfig().Wechat.MchID            // 商户号
+	MchCertificateSerialNumber string = config.GetConfig().Wechat.MchCertSerialNum // 商户证书序列号
+	MchAPIv3Key                string = config.GetConfig().Wechat.MchAPIV3Key      // 商户APIv3密钥
 )
 
 func GetOrdersService() *OrdersService {
@@ -94,7 +94,7 @@ func (service *OrdersService) NewOrder(userID primitive.ObjectID, product *model
 }
 
 func (service *OrdersService) PrepayOrder(order *models.Order, user *models.User) (prepayID string, err error) {
-	appid := config.GetConfig().WECHAT.APPID
+	appid := config.GetConfig().Wechat.AppID
 	client, err := GetWechatClient()
 	if err != nil {
 		return

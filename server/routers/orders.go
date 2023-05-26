@@ -17,10 +17,10 @@ import (
 
 func PrepayOrder(c *gin.Context) {
 	// TODO: 具体的OPENID获取形式需要和前端进行沟通，前端不一定直接传输ID过来
-	open_id := c.Request.Form.Get("openid")
+	openId := c.Request.Form.Get("openid")
 	var user *models.User
 
-	if open_id == "" {
+	if openId == "" {
 		// 尝试从JWTToken中获得
 		claims, err := utils.GetClaims(c)
 		if err != nil {
@@ -45,7 +45,7 @@ func PrepayOrder(c *gin.Context) {
 		}
 	} else {
 		var err error
-		user, err = services.GetAuthService().GetUserByWechatOpenID(open_id)
+		user, err = services.GetAuthService().GetUserByWechatOpenID(openId)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),

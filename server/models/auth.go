@@ -105,6 +105,7 @@ type User struct {
 	ID                    primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Role                  string             `json:"role" bson:"role"`
 	Name                  string             `json:"name" bson:"name"`
+	RealName              string             `json:"realName" bson:"realName"` // 真实姓名
 	EMail                 string             `json:"email" bson:"email"`
 	PasswordHash          string             `json:"-" bson:"passwordHash"`
 	Avatar                string             `json:"avatar" bson:"avatar"`
@@ -115,7 +116,7 @@ type User struct {
 	Collection            Collections        `json:"collection" bson:"collection"`
 	Type                  string             `json:"type" bson:"type"`
 	Membership            string             `json:"membership" bson:"membership"`
-	UserTags              *[]string          `json:"userTags" bson:"userTags"`
+	UserTags              []string           `json:"userTags" bson:"userTags"`
 	// PublicMeta   UserPublicMeta     `json:"publicMeta" bson:"publicMeta"`
 	// FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
 }

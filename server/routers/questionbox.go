@@ -394,12 +394,12 @@ func GetAnswerList(c *gin.Context) {
 		return
 	}
 
-	questionboxID, err := primitive.ObjectIDFromHex(c.Query("questionboxID"))
+	questionID, err := primitive.ObjectIDFromHex(c.Query("questionID"))
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
 	}
-	question, err := services.GetQuestionBoxService().QueryQuestionByID(questionboxID)
+	question, err := services.GetQuestionBoxService().QueryQuestionByID(questionID)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusBadRequest, err))
 		return
@@ -502,7 +502,7 @@ func UpdateAnswerContent(c *gin.Context) {
 // @failure 400 {object} svcerror.SvcErr "请求格式问题"
 // @failure 401 {object{ svcerror.SvcErr "用户认证失败"
 // @failure 500 {object} svcerror.SvcErr "服务器内部问题"
-// @router /questionbox/label/new [post]
+// @router /questionbox/answer/read [post]
 func ReadAnswerByUser(c *gin.Context) {
 	userID, err := utils.GetUserID(c)
 	if err != nil {
@@ -746,7 +746,6 @@ func DeleteLabel(c *gin.Context) {
 // @description 更新标签（文件夹）的标题（内容）
 // @tags questionbox,label
 // @param x-access-token header string true "JWT Token"
-// @param page query string true "标签（文件夹）ID"
 // @param updateLabelContentReq body types.UpdateLabelContentReq true "标签（文件夹）更新内容请求"
 // @produce application/json
 // @success 200 {object} types.UpdateLabelContentRes "标签（文件夹）更新响应"

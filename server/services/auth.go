@@ -75,10 +75,14 @@ func (service *AuthService) IsAlumn(userID primitive.ObjectID, heiID primitive.O
 	return
 }
 
-// 添加一位用户
+// InternalAddUser 添加一位用户
 // 注意不要在服务端中使用，而是在测试中用于添加用户的。
 func (service *AuthService) InternalAddUser(userName, password, role string, processor func(u *models.User)) (user models.User, err error) {
-	user = models.User{Name: userName, Role: role, PasswordHash: auth.EncryptPassword(password)}
+	user = models.User{
+		Name:         userName,
+		Role:         role,
+		PasswordHash: auth.EncryptPassword(password),
+		UserTags:     []string{"1", "2", "3"}}
 	if processor != nil {
 		processor(&user)
 	}
@@ -304,14 +308,14 @@ func (service *AuthService) AddHEIOrMajorToCollection(userID primitive.ObjectID,
 	return
 }
 
-// GetTagByUserID 通过userID找到对应的用户标签
-func (service *AuthService) GetTagByUserID(userID primitive.ObjectID) (tags *[]string, err error) {
+// GetTagsByUserID 通过userID找到对应的用户标签
+func (service *AuthService) GetTagsByUserID(userID primitive.ObjectID) (tags []string, err error) {
 	if userID == primitive.NilObjectID {
 		err = errors.New("用户ID为空")
 		return
 	}
 
-	user := &models.User{}
+	user := new(models.User)
 	err = db.GetCollection("user").FindOne(context.TODO(), bson.M{"_id": userID}).Decode(user)
 	if err != nil {
 		err = errors.New("数据库查找失败")
@@ -329,8 +333,10 @@ func (service *AuthService) UpdateUserTag(userID primitive.ObjectID, tags []stri
 		return
 	}
 	update := bson.M{
-		"$set": bson.M{
-			"userTags": tags,
+		"$addToSet": bson.M{
+			"userTags": bson.M{
+				"$each": tags,
+			},
 		},
 	}
 	err = db.GetCollection("user").FindOneAndUpdate(context.TODO(), bson.M{"_id": userID}, update).Err()

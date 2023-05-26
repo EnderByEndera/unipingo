@@ -2,11 +2,9 @@ package utils
 
 import (
 	"errors"
-	"melodie-site/server/auth"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"melodie-site/server/auth"
 )
 
 func SetClaims(c *gin.Context, claims auth.MelodieSiteClaims) {
@@ -26,7 +24,6 @@ func GetClaims(c *gin.Context) (claims auth.MelodieSiteClaims, err error) {
 func GetUserID(c *gin.Context) (userID primitive.ObjectID, err error) {
 	claims, err := GetClaims(c)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 	userIDString := claims.UserID

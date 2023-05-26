@@ -105,8 +105,8 @@ func LoginWechat(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	params.Set("appid", config.GetConfig().WECHAT.APPID)
-	params.Set("secret", config.GetConfig().WECHAT.SECRET)
+	params.Set("appid", config.GetConfig().Wechat.AppID)
+	params.Set("secret", config.GetConfig().Wechat.Secret)
 	params.Set("js_code", reqStruct.Code)
 	params.Set("grant_type", "authorization_code")
 	// params.Set("name","zhaofan")
@@ -318,7 +318,7 @@ func GetUserTags(c *gin.Context) {
 		c.Error(svcerror.New(http.StatusUnauthorized, err))
 		return
 	}
-	tags, err := services.GetAuthService().GetTagByUserID(userID)
+	tags, err := services.GetAuthService().GetTagsByUserID(userID)
 	if err != nil {
 		c.Error(svcerror.New(http.StatusInternalServerError, err))
 		return

@@ -1,3 +1,10 @@
+server:
+  timeout: 10s
+  certfile: "cert/9325061_wechatapi.houzhanyi.com.pem"
+  keyfile: "cert/9325061_wechatapi.houzhanyi.com.key"
+mongodb:
+  timeout: 5s
+  uri: "mongodb://localhost:10200"
 infra_user:
   name: melodie
   password: melodie-test
