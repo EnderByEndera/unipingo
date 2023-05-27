@@ -4,8 +4,8 @@ import requests
 
 
 r = requests.post("https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal", data={
-    "app_id": "cli_a4c936cd91f8500d",
-    "app_secret": "S7g6tDGloq9kxnDDuSkhRf2XJEOBC3NO"
+    "app_id": "cli_a4fa09d1f9fb5013",
+    "app_secret": "Y3cuyQB716gJ6rnStNrbJbXVJWsRQiJb"
 })
 
 res = r.json()
@@ -13,9 +13,11 @@ print(res)
 token = res["tenant_access_token"]
 print("token:", token)
 
+APPROVAL_CODE = "EAEEC8EC-99F4-4D9B-B7C4-00563DF880B7"# 审批表单的序号，可在表单编辑的URL的definitionCode中获取
+
 def request_subscription():
     r = requests.post("https://www.feishu.cn/approval/openapi/v2/subscription/subscribe", data={
-        "approval_code":  "0266C9C4-96ED-4185-9A72-D3997222835E"
+        "approval_code":  APPROVAL_CODE 
     }, headers={
         "Authorization": "Bearer "+token,
         #   "Content-Type": "application/json",
@@ -25,9 +27,9 @@ def request_subscription():
 request_subscription()
 r = requests.post("https://www.feishu.cn/approval/openapi/v2/instance/create",
                   data={
-                      "approval_code": "0266C9C4-96ED-4185-9A72-D3997222835E",
-                      "user_id": "6cg59473",
-                      "department_id": "g71ca93cf249d1cd",
+                      "approval_code": "EAEEC8EC-99F4-4D9B-B7C4-00563DF880B7",
+                      "user_id": "f4cg5853", # 在管理员后台-组织架构-成员与部门中，选择自己，可以定义user_id
+                      "department_id": "5", # 开发部门的id，在管理员后台-组织架构-成员与部门中，选择开发部，即可找到。
                       "node_approver_user_id_list": {
 
                       },
