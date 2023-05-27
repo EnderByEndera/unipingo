@@ -116,7 +116,7 @@ type User struct {
 	Collection            Collections        `json:"collection" bson:"collection"`
 	Type                  string             `json:"type" bson:"type"`
 	Membership            string             `json:"membership" bson:"membership"`
-	UserTags              []string           `json:"userTags" bson:"userTags"`
+	UserTags              map[string]string  `json:"userTags" bson:"userTags"` // {"科目":"历史"}, {"爱好":"唱歌"}
 	// PublicMeta   UserPublicMeta     `json:"publicMeta" bson:"publicMeta"`
 	// FreeToModifyMeta UserFreeToModifyMeta `json:"freeToModifyMeta" bson:"freeToModifyMeta"`
 }

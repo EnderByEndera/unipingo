@@ -82,7 +82,12 @@ func (service *AuthService) InternalAddUser(userName, password, role string, pro
 		Name:         userName,
 		Role:         role,
 		PasswordHash: auth.EncryptPassword(password),
-		UserTags:     []string{"1", "2", "3"}}
+		UserTags: map[string]string{
+			"科目": "物理",
+			"爱好": "历史",
+			"性别": "男",
+		},
+	}
 	if processor != nil {
 		processor(&user)
 	}
@@ -309,7 +314,7 @@ func (service *AuthService) AddHEIOrMajorToCollection(userID primitive.ObjectID,
 }
 
 // GetTagsByUserID 通过userID找到对应的用户标签
-func (service *AuthService) GetTagsByUserID(userID primitive.ObjectID) (tags []string, err error) {
+func (service *AuthService) GetTagsByUserID(userID primitive.ObjectID) (tags map[string]string, err error) {
 	if userID == primitive.NilObjectID {
 		err = errors.New("用户ID为空")
 		return
